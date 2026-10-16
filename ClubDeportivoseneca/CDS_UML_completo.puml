@@ -28,7 +28,7 @@ note top of Club
 end note
 
 Club "1" -- "0..*" Persona
-Club "1" -- "0..*" DisciplinaDeportiva
+Club "1" -- "0..*" Deporte
 Club "1" -- "0..*" Instalacion
 Club "1" -- "0..*" Producto
 Club "1" -- "0..*" Competencia
@@ -91,20 +91,25 @@ Empleado <|-- Fisioterapeuta
 
 ' -------------------- Estructura deportiva --------------------
 
-abstract class DisciplinaDeportiva {
-  nombre
+abstract class Deporte {
+  # nombre : String {readOnly}
 }
 
-class DeporteConjunto
+class DeporteConjunto {
+  - equipos : List<Equipo>
+  + crearEquipo(nombre : String, categoria : Categoria, cupoMaximo : int) : Equipo
+}
 class DeporteIndividual
 
-DisciplinaDeportiva <|-- DeporteConjunto
-DisciplinaDeportiva <|-- DeporteIndividual
+Deporte <|-- DeporteConjunto
+Deporte <|-- DeporteIndividual
 
 class Equipo {
-  nombre
+  - deporte : DeporteConjunto {readOnly}
+  - nombre : String {readOnly}
   categoria : Categoria
   cupoMaximo
+  ~ Equipo(deporte : DeporteConjunto, nombre : String, categoria : Categoria, cupoMaximo : int)
 }
 
 Equipo --> Categoria
@@ -126,7 +131,13 @@ class Ranking {
   puntajeELO
 }
 
-DeporteConjunto "1" -- "0..*" Equipo
+DeporteConjunto "1" <--> "0..*" Equipo
+
+note right of Equipo
+  Clave: deporte + nombre.
+  Solo se crea con DeporteConjunto.crearEquipo
+  (constructor de paquete).
+end note
 Socio "1" -- "0..*" InscripcionEquipo
 Equipo "1" -- "0..*" InscripcionEquipo
 
@@ -198,7 +209,7 @@ note bottom of EstadisticaPartido
   Agregar un deporte = agregar una subclase.
 end note
 
-DisciplinaDeportiva "1" -- "0..*" Partido
+Deporte "1" -- "0..*" Partido
 ' Clase de asociación: una estadística por cada par (Partido, jugador que participó)
 Partido "0..*" -- "1..*" Socio : participa
 (Partido, Socio) .. EstadisticaPartido
