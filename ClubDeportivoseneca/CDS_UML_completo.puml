@@ -42,7 +42,7 @@ abstract class Persona {
   # Persona(nombre : String, login : String, password : String)
   + getNombre() : String
   + getLogin() : String
-  + esPasswordCorrecta(intento : String) : boolean
+  + esPasswordCorrecta(input : String) : boolean
   + cambiarPassword(passwordActual : String, newPass : String) : void
   - validarPassword(password : String) : void
 }
