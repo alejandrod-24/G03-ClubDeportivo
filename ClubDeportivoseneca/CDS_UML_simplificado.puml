@@ -18,6 +18,8 @@ class Club
 
 note top of Club
   Supuesto: el sistema maneja un solo club.
+  Hay un solo Administrador: registrarPersona
+  rechaza un segundo.
   No conoce archivos: la persistencia va en
   clases aparte, una por grupo de datos.
 end note
@@ -201,8 +203,6 @@ class ProductoCafeteria
 
 class Alergeno
 
-class CodigoDescuento
-
 class CuentaFidelidad
 
 Venta <|-- VentaTienda
@@ -215,7 +215,6 @@ Producto "1" -- "0..*" DetalleVenta
 Persona "1" -- "0..*" Venta
 
 ProductoCafeteria "0..*" -- "0..*" Alergeno
-Empleado "1" -- "1" CodigoDescuento
 
 Persona "1" -- "0..1" CuentaFidelidad
 Venta "0..*" -- "1" CuentaFidelidad
