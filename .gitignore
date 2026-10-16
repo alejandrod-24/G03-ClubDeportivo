@@ -1,0 +1,6 @@
+.metadata/
+.metadata.bak*/
+.recommenders/
+bin/
+*.class
+docs/
