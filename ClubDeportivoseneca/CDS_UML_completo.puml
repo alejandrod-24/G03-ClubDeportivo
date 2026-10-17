@@ -1,37 +1,136 @@
 @startuml
 ' ============================================================
 ' Club Deportivo Séneca (CDS)
-' Diagrama de clases de análisis
-' Entrega 1 - Proyecto 1
+' Diagrama de clases de diseño
+' Entrega 2 - Proyecto 1
+' Sincronizado con el código del commit 06c403a (2026-10-17).
+' <<pendiente>> = clase del diseño que todavía no existe en el código
+' (sus atributos son los del análisis, sin tipos).
+' Los toString() se omiten.
 ' ============================================================
 
-title Club Deportivo Séneca - Diagrama de clases (diseño completo) 
+title Club Deportivo Séneca - Diagrama de clases (diseño completo)
 
 hide empty members
 skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor<<pendiente>> #EEEEEE
+  BorderColor<<pendiente>> #999999
+  FontColor<<pendiente>> #777777
+}
 
 ' -------------------- Club (raíz del dominio) --------------------
 
-' Único club del sistema. Tiene las colecciones raíz; desde ellas se
-' llega al resto (equipos, partidos, ventas, reservas...).
 class Club {
-  + registrarPersona(persona)
-  + buscarPersona(login)
+  - personas : Map<String, Persona>
+  - deportes : List<Deporte>
+  - competencias : List<Competencia>
+  - usuarioActual : Persona
+  + Club()
+  .. Registro y búsqueda (sin control de acceso) ..
+  + registrarPersona(persona : Persona) : void
+  + buscarPersona(login : String) : Persona
+  + buscarSocio(login : String) : Socio
+  + getPersonas() : Collection<Persona>
+  + agregarDeporte(deporte : Deporte) : void
+  + buscarDeporte(nombre : String) : Deporte
+  + buscarDeporteConjunto(nombre : String) : DeporteConjunto
+  + getDeportes() : List<Deporte>
+  + getDeportesConjunto() : List<DeporteConjunto>
+  + buscarEquipo(deporte : String, nombre : String) : Equipo
+  + agregarCompetencia(competencia : Competencia) : void
+  + buscarCompetencia(nombre : String, temporada : int) : Competencia
+  + getCompetencias() : List<Competencia>
+  + getTodosLosPartidos() : List<Partido>
+  + buscarPartido(id : String) : Partido
+  - generarIdPartido() : String
+  .. Sesión ..
+  + iniciarSesion(login : String, password : String) : Persona
+  + cerrarSesion() : void
+  + getUsuarioActual() : Persona
+  + cambiarPassword(passwordActual : String, nuevaPassword : String) : void
+  - exigirSesion() : Persona
+  - <T extends Persona> exigirRol(rol : Class<T>) : T
+  .. Consultas generales ..
+  + consultarEquipos(deporte : String, categoria : Categoria) : List<Equipo>
+  + consultarCalendarioEquipo(deporte : String, nombreEquipo : String) : List<Partido>
+  + consultarCompetencia(nombre : String, temporada : int) : Competencia
+  .. Administrador ..
+  + crearSocio(nombre : String, login : String, password : String, fechaNacimiento : LocalDate) : Socio
+  + crearEntrenador(nombre : String, login : String, password : String) : Entrenador
+  + crearFisioterapeuta(nombre : String, login : String, password : String) : Fisioterapeuta
+  - generarCodigoDescuento(login : String) : String
+  + restablecerPassword(login : String, nuevaPassword : String) : void
+  + darDeBajaPersona(login : String) : void
+  + crearEquipo(deporte : String, nombre : String, categoria : Categoria, cupoMaximo : int) : Equipo
+  + darDeBajaEquipo(deporte : String, nombre : String) : void
+  + crearCompetenciaCerros(nombre : String, temporada : int, deporte : String, categoria : Categoria, instituciones : List<String>) : Competencia
+  + crearCompetenciaAscun(nombre : String, temporada : int, deporte : String, categoria : Categoria, instituciones : List<String>) : Competencia
+  + finalizarCompetencia(nombre : String, temporada : int) : void
+  .. Socio ..
+  + consultarPerfil() : String
+  - describirSuspension(socio : Socio, equipo : Equipo) : String
+  + inscribirseEnEquipo(deporte : String, nombreEquipo : String, posicion : String, numeroCamiseta : int) : void
+  + retirarseDeEquipo(deporte : String, nombreEquipo : String) : void
+  .. Entrenador ..
+  + programarPartidoInterno(deporte : String, local : String, visitante : String, fecha : LocalDate) : PartidoInterno
+  + registrarResultadoInterno(idPartido : String, alineacionLocal : List<String>, alineacionVisitante : List<String>, marcadorLocal : int, marcadorVisitante : int) : void
+  + registrarEstadistica(idPartido : String, estadistica : EstadisticaPartido) : void
+  + declararNoJugado(idPartido : String) : void
+  + consultarSanciones(deporte : String, nombreEquipo : String) : List<String>
+  + inscribirEquipoEnCompetencia(competencia : String, temporada : int, deporte : String, nombreEquipo : String) : void
+  + definirNomina(competencia : String, temporada : int, nombreEquipo : String, logins : List<String>) : void
+  + programarPartidoCompetencia(competencia : String, temporada : int, nombreEquipo : String, rival : String, escenario : String, fecha : LocalDate, fase : Fase) : PartidoCompetencia
+  + registrarPartidoCompetencia(idPartido : String, alineacion : List<String>, marcadorClub : int, marcadorRival : int, estadisticas : List<EstadisticaPartido>) : void
+  - buscarPartidoInterno(id : String) : PartidoInterno
+  - buscarSocios(logins : List<String>) : List<Socio>
+  .. Empleado ..
+  + consultarCodigoDescuento() : String
 }
 
 note top of Club
   Supuesto: el sistema maneja un solo club.
   Hay un solo Administrador: registrarPersona
-  rechaza un segundo.
+  rechaza un segundo (instanceof).
+  Cada acción exige sesión y rol (exigirRol).
+  El código de descuento se genera del login
+  ("DESC-" + LOGIN), así que es único.
   No conoce archivos: la persistencia va en
-  clases aparte, una por grupo de datos.
+  el paquete persistencia.
 end note
 
-Club "1" -- "0..*" Persona
-Club "1" -- "0..*" Deporte
+Club "1" --> "0..*" Persona
+Club "1" --> "0..1" Persona : usuarioActual
+Club "1" --> "0..*" Deporte
+Club "1" --> "0..*" Competencia
 Club "1" -- "0..*" Instalacion
 Club "1" -- "0..*" Producto
-Club "1" -- "0..*" Competencia
+
+class DatosIniciales {
+  + {static} TEMPORADA : int = 2026
+  + {static} LIGA_CERROS : String = "Liga de los Cerros"
+  + {static} ASCUN_BALONCESTO : String = "ASCUN Baloncesto"
+  + {static} crearClub() : Club
+  - {static} nacidoHace(anios : int) : LocalDate
+  - {static} inscribir(club : Club, equipo : Equipo, jugadores : String[][]) : void
+}
+
+class Reloj {
+  - {static} fechaFija : LocalDate
+  + {static} hoy() : LocalDate
+  + {static} fijar(fecha : LocalDate) : void
+  + {static} avanzarDias(dias : int) : void
+  + {static} restablecer() : void
+}
+
+DatosIniciales ..> Club : crea
+
+note bottom of Reloj
+  Fecha "de hoy" del sistema (null = LocalDate.now()).
+  Las pruebas la fijan para que los resultados
+  no cambien. La usan Socio, Partido,
+  DeporteConjunto y Competencia.
+end note
 
 ' -------------------- Personas y roles --------------------
 
@@ -39,20 +138,45 @@ abstract class Persona {
   # nombre : String
   # login : String {readOnly}
   - password : String
+  - activo : boolean
   # Persona(nombre : String, login : String, password : String)
   + getNombre() : String
   + getLogin() : String
+  + {abstract} getRol() : Rol
+  + estaActivo() : boolean
+  + darDeBaja() : void
   + esPasswordCorrecta(input : String) : boolean
   + cambiarPassword(passwordActual : String, newPass : String) : void
+  + restablecerPassword(newPass : String) : void
+  + getPasswordParaGuardar() : String
   - validarPassword(password : String) : void
+  # {static} validarTexto(texto : String, campo : String) : void
 }
+
+note left of Persona
+  validarTexto rechaza null, vacío y ';'
+  (el ';' es el separador de los archivos).
+  El login tampoco puede tener espacios.
+  getPasswordParaGuardar solo lo usa
+  la persistencia.
+end note
+
+enum Rol {
+  SOCIO
+  ENTRENADOR
+  FISIOTERAPEUTA
+  ADMINISTRADOR
+}
+
+Persona ..> Rol
 
 class Socio {
   - fechaNacimiento : LocalDate {readOnly}
   + Socio(nombre : String, login : String, password : String, fechaNacimiento : LocalDate)
   + getFechaNacimiento() : LocalDate
+  + getEdad() : int
   + getCategoria() : Categoria
-  + estaSuspendido(partido : Partido) : boolean
+  + getRol() : Rol
   - validarFechaNacimiento(fechaNacimiento : LocalDate) : void
 }
 
@@ -74,13 +198,16 @@ abstract class Empleado {
 
 class Entrenador {
   + Entrenador(nombre : String, login : String, password : String, codigoDescuento : String)
+  + getRol() : Rol
 }
 class Fisioterapeuta {
   + Fisioterapeuta(nombre : String, login : String, password : String, codigoDescuento : String)
+  + getRol() : Rol
 }
 
 class Administrador {
   + Administrador(nombre : String, login : String, password : String)
+  + getRol() : Rol
 }
 
 Persona <|-- Socio
@@ -93,13 +220,35 @@ Empleado <|-- Fisioterapeuta
 
 abstract class Deporte {
   # nombre : String {readOnly}
+  # Deporte(nombre : String)
+  + getNombre() : String
+  - validarNombre(nombre : String) : void
 }
 
 class DeporteConjunto {
-  - equipos : List<Equipo>
+  - minimoJugadores : int {readOnly}
+  - permiteEmpate : boolean {readOnly}
+  - posiciones : List<String> {readOnly}
+  - equipos : ArrayList<Equipo> {readOnly}
+  - partidos : ArrayList<PartidoInterno> {readOnly}
+  + DeporteConjunto(nombre : String, minimoJugadores : int, permiteEmpate : boolean, posiciones : List<String>)
+  + getMinimoJugadores() : int
+  + permiteEmpate() : boolean
+  + getPosiciones() : List<String>
+  + getEquipos() : List<Equipo>
+  + getPartidos() : List<PartidoInterno>
   + crearEquipo(nombre : String, categoria : Categoria, cupoMaximo : int) : Equipo
+  + buscarEquipo(nombre : String) : Equipo
+  + tienePosicion(posicion : String) : boolean
+  + getEquipoDe(socio : Socio) : Equipo
+  + programarPartido(id : String, local : Equipo, visitante : Equipo, fecha : LocalDate) : PartidoInterno
+  + agregarPartidoGuardado(partido : PartidoInterno) : void
+  + getPartidosDe(equipo : Equipo) : List<PartidoInterno>
+  + tienePartidosProgramados(equipo : Equipo) : boolean
 }
-class DeporteIndividual
+class DeporteIndividual {
+  + DeporteIndividual(nombre : String)
+}
 
 Deporte <|-- DeporteConjunto
 Deporte <|-- DeporteIndividual
@@ -109,25 +258,52 @@ class Equipo {
   - nombre : String {readOnly}
   - categoria : Categoria
   - cupoMaximo : int {readOnly}
+  - activo : boolean
+  - inscripciones : List<InscripcionEquipo> {readOnly}
   ~ Equipo(deporte : DeporteConjunto, nombre : String, categoria : Categoria, cupoMaximo : int)
+  - validarNombre(nombre : String) : void
+  - validarCategoria(categoria : Categoria) : void
+  - validarCupoMaximo(cupoMaximo : int) : void
+  + getDeporte() : DeporteConjunto
+  + getNombre() : String
+  + getCategoria() : Categoria
+  + getCupoMaximo() : int
+  + getCuposDisponibles() : int
+  + estaActivo() : boolean
+  + getInscripciones() : List<InscripcionEquipo>
+  + getJugadores() : List<Socio>
+  + buscarInscripcion(socio : Socio) : InscripcionEquipo
+  + estaInscrito(socio : Socio) : boolean
+  + inscribir(socio : Socio, posicion : String, numeroCamiseta : int) : void
+  + agregarInscripcionGuardada(socio : Socio, posicion : String, numeroCamiseta : int) : void
+  + retirar(socio : Socio) : void
+  + cambiarCategoria(nueva : Categoria) : void
+  + darDeBaja() : void
 }
 
 Equipo --> Categoria
 
 class InscripcionEquipo {
-  posicion
-  numeroCamiseta
+  - socio : Socio {readOnly}
+  - equipo : Equipo {readOnly}
+  - posicion : String {readOnly}
+  - numeroCamiseta : int {readOnly}
+  ~ InscripcionEquipo(socio : Socio, equipo : Equipo, posicion : String, numeroCamiseta : int)
+  + getSocio() : Socio
+  + getEquipo() : Equipo
+  + getPosicion() : String
+  + getNumeroCamiseta() : int
 }
 
-class Academia {
+class Academia <<pendiente>> {
   nombre
 }
 
-class InscripcionAcademia {
+class InscripcionAcademia <<pendiente>> {
   nivel
 }
 
-class Ranking {
+class Ranking <<pendiente>> {
   puntajeELO
 }
 
@@ -136,26 +312,102 @@ DeporteConjunto "1" <--> "0..*" Equipo
 note right of Equipo
   Clave: deporte + nombre.
   Solo se crea con DeporteConjunto.crearEquipo
-  (constructor de paquete).
+  (constructor de paquete). Igual InscripcionEquipo,
+  que solo se crea con Equipo.inscribir.
+  Dar de baja libera a los jugadores.
 end note
-Socio "1" -- "0..*" InscripcionEquipo
-Equipo "1" -- "0..*" InscripcionEquipo
+Equipo "1" <--> "0..*" InscripcionEquipo
+InscripcionEquipo "0..*" --> "1" Socio
 
 DeporteIndividual "1" -- "1" Academia
 Socio "1" -- "0..*" InscripcionAcademia
 Academia "1" -- "0..*" InscripcionAcademia
 InscripcionAcademia "1" -- "1" Ranking
 
-' -------------------- Partidos y competencia --------------------
+' -------------------- Partidos --------------------
 
 abstract class Partido {
-  fecha
-  marcador
+  # id : String {readOnly}
+  # fecha : LocalDate {readOnly}
+  # estado : EstadoPartido
+  # marcadorLocal : int
+  # marcadorVisitante : int
+  # estadisticas : Map<String, EstadisticaPartido> {readOnly}
+  # Partido(id : String, fecha : LocalDate)
+  + getId() : String
+  + getFecha() : LocalDate
+  + getEstado() : EstadoPartido
+  + getMarcadorLocal() : int
+  + getMarcadorVisitante() : int
+  + {abstract} getDeporte() : Deporte
+  + {abstract} getAlineados() : List<Socio>
+  + {abstract} getDescripcion() : String
+  + getEstadisticas() : Collection<EstadisticaPartido>
+  + getEstadistica(login : String) : EstadisticaPartido
+  + estaAlineado(login : String) : boolean
+  + registrarEstadistica(estadistica : EstadisticaPartido) : void
+  # validarEstadistica(estadistica : EstadisticaPartido) : void
+  + declararNoJugado() : void
+  # validarPuedeRegistrarse() : void
+  # {static} validarMarcador(local : int, visitante : int, permiteEmpate : boolean) : void
+  # {static} validarSinRepetidos(jugadores : List<Socio>) : void
+  + restaurarEstado(estado : EstadoPartido, marcadorLocal : int, marcadorVisitante : int) : void
+  + restaurarEstadistica(estadistica : EstadisticaPartido) : void
+  + {static} ultimoJugadoAntesDe(partidos : List<? extends Partido>, fecha : LocalDate) : Partido
+  + {static} fueExpulsadoEn(partido : Partido, socio : Socio) : boolean
+  + getResultado() : String
 }
 
-class PartidoInterno
-class PartidoCompetencia
-class PartidoPractica
+enum EstadoPartido {
+  PROGRAMADO
+  JUGADO
+  NO_JUGADO
+}
+
+Partido --> EstadoPartido
+
+class PartidoInterno {
+  - deporte : DeporteConjunto {readOnly}
+  - local : Equipo {readOnly}
+  - visitante : Equipo {readOnly}
+  - alineacionLocal : List<Socio>
+  - alineacionVisitante : List<Socio>
+  + PartidoInterno(id : String, deporte : DeporteConjunto, local : Equipo, visitante : Equipo, fecha : LocalDate)
+  + getDeporte() : DeporteConjunto
+  + getLocal() : Equipo
+  + getVisitante() : Equipo
+  + getAlineacionLocal() : List<Socio>
+  + getAlineacionVisitante() : List<Socio>
+  + getAlineados() : List<Socio>
+  + getDescripcion() : String
+  + registrarResultado(alineacionLocal : List<Socio>, alineacionVisitante : List<Socio>, marcadorLocal : int, marcadorVisitante : int) : void
+  - validarAlineacion(alineacion : List<Socio>, equipo : Equipo) : void
+  + estaSuspendido(socio : Socio, equipo : Equipo) : boolean
+  + restaurarAlineaciones(alineacionLocal : List<Socio>, alineacionVisitante : List<Socio>) : void
+}
+
+class PartidoCompetencia {
+  - competencia : Competencia {readOnly}
+  - equipo : Equipo {readOnly}
+  - institucionRival : String {readOnly}
+  - escenario : String {readOnly}
+  - fase : Fase {readOnly}
+  - alineacion : List<Socio>
+  + PartidoCompetencia(id : String, competencia : Competencia, equipo : Equipo, institucionRival : String, escenario : String, fecha : LocalDate, fase : Fase)
+  + getDeporte() : DeporteConjunto
+  + getCompetencia() : Competencia
+  + getEquipo() : Equipo
+  + getInstitucionRival() : String
+  + getEscenario() : String
+  + getFase() : Fase
+  + getAlineados() : List<Socio>
+  + getDescripcion() : String
+  + getGanador() : String
+  + registrarResultado(alineacion : List<Socio>, marcadorClub : int, marcadorRival : int, estadisticasJugadores : List<EstadisticaPartido>) : void
+  + restaurarAlineacion(alineacion : List<Socio>) : void
+}
+
+class PartidoPractica <<pendiente>>
 
 Partido <|-- PartidoInterno
 Partido <|-- PartidoCompetencia
@@ -163,122 +415,265 @@ Partido <|-- PartidoPractica
 
 ' Una EstadisticaPartido = todo lo que hizo UN jugador en UN partido.
 ' Cada deporte define sus propios campos (p.2 y p.3 del enunciado).
-abstract class EstadisticaPartido
+abstract class EstadisticaPartido {
+  # loginJugador : String {readOnly}
+  # EstadisticaPartido(loginJugador : String)
+  + getLoginJugador() : String
+  + {abstract} getNombreDeporte() : String
+  + {abstract} getAnotaciones() : int
+  + {abstract} getValoracion() : int
+  + {abstract} getValores() : List<String>
+  + getTarjetasAmarillas() : int
+  + tieneTarjetaRoja() : boolean
+  + generaSuspension() : boolean
+  # {static} validarNoNegativo(valor : int, campo : String) : void
+}
 
 class EstadisticaFutbol {
-  goles
-  asistencias
-  tarjetasAmarillas
-  tarjetaRoja
+  + {static} DEPORTE : String = "Futbol"
+  - goles : int {readOnly}
+  - asistencias : int {readOnly}
+  - tarjetasAmarillas : int {readOnly}
+  - tarjetaRoja : boolean {readOnly}
+  + EstadisticaFutbol(loginJugador : String, goles : int, asistencias : int, tarjetasAmarillas : int, tarjetaRoja : boolean)
+  + getGoles() : int
+  + getAsistencias() : int
+  + getTarjetasAmarillas() : int
+  + tieneTarjetaRoja() : boolean
+  + getNombreDeporte() : String
+  + getAnotaciones() : int
+  + getValoracion() : int
+  + getValores() : List<String>
 }
 
 class EstadisticaBaloncesto {
-  puntos
-  rebotes
+  + {static} DEPORTE : String = "Baloncesto"
+  - puntos : int {readOnly}
+  - rebotes : int {readOnly}
+  + EstadisticaBaloncesto(loginJugador : String, puntos : int, rebotes : int)
+  + getPuntos() : int
+  + getRebotes() : int
+  + getNombreDeporte() : String
+  + getAnotaciones() : int
+  + getValoracion() : int
+  + getValores() : List<String>
 }
 
-class EstadisticaTenis {
+class EstadisticaVoleibol {
+  + {static} DEPORTE : String = "Voleibol"
+  - aces : int {readOnly}
+  - bloqueos : int {readOnly}
+  + EstadisticaVoleibol(loginJugador : String, aces : int, bloqueos : int)
+  + getAces() : int
+  + getBloqueos() : int
+  + getNombreDeporte() : String
+  + getAnotaciones() : int
+  + getValoracion() : int
+  + getValores() : List<String>
+}
+
+class EstadisticaTenis <<pendiente>> {
   setsGanados
   gamesGanados
   aces
   erroresNoForzados
 }
 
-class EstadisticaPadel {
+class EstadisticaPadel <<pendiente>> {
   setsGanados
   gamesGanados
   aces
   erroresNoForzados
 }
 
-class EstadisticaTenisDeMesa {
+class EstadisticaTenisDeMesa <<pendiente>> {
   setsGanados
   puntosTotales
 }
 
 EstadisticaPartido <|-- EstadisticaFutbol
 EstadisticaPartido <|-- EstadisticaBaloncesto
+EstadisticaPartido <|-- EstadisticaVoleibol
 EstadisticaPartido <|-- EstadisticaTenis
 EstadisticaPartido <|-- EstadisticaPadel
 EstadisticaPartido <|-- EstadisticaTenisDeMesa
 
 note bottom of EstadisticaPartido
-  Alcance del sistema (supuesto de diseño):
-  conjunto: fútbol, baloncesto
+  Alcance en el código hoy:
+  conjunto: fútbol, baloncesto, voleibol
   individual: tenis, pádel, tenis de mesa
+  (sin estadísticas todavía).
   Agregar un deporte = agregar una subclase.
 end note
 
-Deporte "1" -- "0..*" Partido
-' Clase de asociación: una estadística por cada par (Partido, jugador que participó)
-Partido "0..*" -- "1..*" Socio : participa
-(Partido, Socio) .. EstadisticaPartido
+' Una estadística por jugador alineado; el mapa usa el login como clave.
+Partido "1" *-- "0..*" EstadisticaPartido : por login
 
+DeporteConjunto "1" <--> "0..*" PartidoInterno
 PartidoInterno "0..*" --> "1" Equipo : local
 PartidoInterno "0..*" --> "1" Equipo : visitante
+PartidoInterno "0..*" --> "0..*" Socio : alineaciones
 
 note right of EstadisticaFutbol
-  La suspensión no se guarda: se calcula
-  (2 amarillas o 1 roja → fuera el siguiente
-  partido de su equipo).
+  La suspensión no se guarda: se calcula.
+  generaSuspension(): roja o 2 amarillas.
+  PartidoInterno.estaSuspendido mira el partido
+  anterior del equipo; Competencia.estaSuspendido
+  además cuenta amarillas acumuladas.
 end note
 
+' -------------------- Competencias --------------------
+
 class Competencia {
-  nombre
-  entidadOrganizadora
-  temporada
+  + {static} CERROS : String = "Torneo de los Cerros"
+  + {static} ASCUN : String = "ASCUN"
+  - nombre : String {readOnly}
+  - entidadOrganizadora : String {readOnly}
+  - temporada : int {readOnly}
+  - deporte : DeporteConjunto {readOnly}
+  - categoria : Categoria {readOnly}
+  - formato : FormatoCompetencia {readOnly}
+  - instituciones : List<String> {readOnly}
+  - nominaMinima : int {readOnly}
+  - amarillasParaSuspension : int {readOnly}
+  - finalizada : boolean
+  - inscripciones : List<InscripcionCompetencia> {readOnly}
+  - partidos : List<PartidoCompetencia> {readOnly}
+  + Competencia(nombre : String, entidadOrganizadora : String, temporada : int, deporte : DeporteConjunto, categoria : Categoria, formato : FormatoCompetencia, instituciones : List<String>, nominaMinima : int, amarillasParaSuspension : int)
+  + {static} torneoDeLosCerros(nombre : String, temporada : int, deporte : DeporteConjunto, categoria : Categoria, instituciones : List<String>) : Competencia
+  + {static} ascun(nombre : String, temporada : int, deporte : DeporteConjunto, categoria : Categoria, instituciones : List<String>) : Competencia
+  - {static} validarTexto(texto : String, campo : String) : void
+  + getNombre() : String
+  + getEntidadOrganizadora() : String
+  + getTemporada() : int
+  + getDeporte() : DeporteConjunto
+  + getCategoria() : Categoria
+  + getFormato() : FormatoCompetencia
+  + getInstituciones() : List<String>
+  + getNominaMinima() : int
+  + getAmarillasParaSuspension() : int
+  + estaEnCurso() : boolean
+  + getInscripciones() : List<InscripcionCompetencia>
+  + getPartidos() : List<PartidoCompetencia>
+  + finalizar() : void
+  + buscarInscripcion(equipo : Equipo) : InscripcionCompetencia
+  + tieneEnNomina(socio : Socio) : boolean
+  + inscribirEquipo(equipo : Equipo) : InscripcionCompetencia
+  + definirNomina(equipo : Equipo, nomina : List<Socio>) : void
+  + agregarInscripcionGuardada(equipo : Equipo, nomina : List<Socio>) : void
+  + programarPartido(id : String, equipo : Equipo, rival : String, escenario : String, fecha : LocalDate, fase : Fase) : PartidoCompetencia
+  + agregarPartidoGuardado(partido : PartidoCompetencia) : void
+  - esInstitucionParticipante(institucion : String) : boolean
+  + getPartidosDe(equipo : Equipo) : List<PartidoCompetencia>
+  + tienePartidosProgramados(equipo : Equipo) : boolean
+  + estaSuspendido(socio : Socio, equipo : Equipo, fechaPartido : LocalDate) : boolean
+  - {static} amarillasDe(partido : Partido, socio : Socio) : int
+  + getTablaPosiciones() : List<FilaPosicion>
+  - buscarNombreInstitucion(institucion : String) : String
+  + getCuadroEliminacion() : List<PartidoCompetencia>
+  - acumular(usarValoracion : boolean) : Map<String, Integer>
+  - {static} maximo(totales : Map<String, Integer>) : String
+  + getGoleador() : String
+  + getJugadorDestacado() : String
+  + getAmonestaciones() : List<String>
+  + generarResumen() : String
 }
 
-class FormatoCompetencia {
-  tipo
+note left of Competencia
+  Clave: nombre + temporada.
+  torneoDeLosCerros: LIGA, nómina = mínimo
+  de jugadores, suspensión cada 3 amarillas.
+  ascun: GRUPOS_Y_ELIMINACION, nómina = mínimo + 1,
+  suspensión cada 2 amarillas.
+end note
+
+enum FormatoCompetencia {
+  LIGA
+  GRUPOS_Y_ELIMINACION
 }
 
-class InscripcionCompetencia
-class RegistroNomina
-class Institucion {
-  nombre
-}
-class Escenario {
-  nombre
+enum Fase {
+  LIGA
+  GRUPOS
+  OCTAVOS
+  CUARTOS
+  SEMIFINAL
+  FINAL
+  + esEliminatoria() : boolean
+  + esValidaPara(formato : FormatoCompetencia) : boolean
 }
 
-Competencia "0..*" -- "1" DeporteConjunto
-Competencia "0..*" -- "1" FormatoCompetencia
-Competencia "1" -- "0..*" InscripcionCompetencia
-Equipo "1" -- "0..*" InscripcionCompetencia
-InscripcionCompetencia "1" *-- "1..*" RegistroNomina
-Socio "1" -- "0..*" RegistroNomina
+class InscripcionCompetencia {
+  - competencia : Competencia {readOnly}
+  - equipo : Equipo {readOnly}
+  - nomina : List<Socio>
+  ~ InscripcionCompetencia(competencia : Competencia, equipo : Equipo)
+  + getCompetencia() : Competencia
+  + getEquipo() : Equipo
+  + getNomina() : List<Socio>
+  + estaEnNomina(socio : Socio) : boolean
+}
 
+class FilaPosicion {
+  - nombre : String {readOnly}
+  - jugados : int
+  - ganados : int
+  - empatados : int
+  - perdidos : int
+  - aFavor : int
+  - enContra : int
+  + FilaPosicion(nombre : String)
+  ~ registrar(favor : int, contra : int) : void
+  + getNombre() : String
+  + getPuntos() : int
+  + getDiferencia() : int
+}
+
+Competencia "0..*" --> "1" DeporteConjunto
+Competencia --> Categoria
+Competencia --> FormatoCompetencia
+Competencia "1" <--> "0..*" InscripcionCompetencia
+InscripcionCompetencia "0..*" --> "1" Equipo
+InscripcionCompetencia "0..*" --> "0..*" Socio : nomina
+Competencia ..> FilaPosicion : tabla de posiciones
+
+' Navegable en los dos sentidos (Competencia tiene la lista y el partido su competencia)
 Competencia "1" *-- "0..*" PartidoCompetencia
 PartidoCompetencia "0..*" --> "1" Equipo
-PartidoCompetencia "0..*" --> "1" Institucion
-PartidoCompetencia "0..*" --> "1" Escenario
+PartidoCompetencia --> Fase
+PartidoCompetencia "0..*" --> "0..*" Socio : alineacion
+
+note bottom of InscripcionCompetencia
+  La nómina es una lista de Socio
+  (no hay RegistroNomina). Institución
+  rival y escenario son String, no clases.
+end note
 
 DeporteIndividual "1" -- "0..*" PartidoPractica
 Socio "2..4" -- "0..*" PartidoPractica
 
 ' -------------------- Instalaciones y entrenamiento --------------------
 
-abstract class Instalacion {
+abstract class Instalacion <<pendiente>> {
   nombre
   capacidad
 }
 
-class InstalacionIndividual
-class InstalacionConjunto
+class InstalacionIndividual <<pendiente>>
+class InstalacionConjunto <<pendiente>>
 
-class Reserva {
+class Reserva <<pendiente>> {
   fecha
   bloqueHorario
 }
 
-class SesionEntrenamiento {
+class SesionEntrenamiento <<pendiente>> {
   fecha
   hora
   duracion
 }
 
-class RegistroEntrenamiento {
+class RegistroEntrenamiento <<pendiente>> {
   asistencia
   nota
 }
@@ -297,37 +692,37 @@ Socio "1" -- "0..*" RegistroEntrenamiento
 
 ' -------------------- Comercio e inventario --------------------
 
-abstract class Venta {
+abstract class Venta <<pendiente>> {
   fecha
   total
 }
 
-class VentaTienda
-class VentaCafeteria
+class VentaTienda <<pendiente>>
+class VentaCafeteria <<pendiente>>
 
-class DetalleVenta {
+class DetalleVenta <<pendiente>> {
   cantidad
   precioUnitario
 }
 
-abstract class Producto {
+abstract class Producto <<pendiente>> {
   nombre
   precio
 }
 
-class ArticuloDeportivo {
+class ArticuloDeportivo <<pendiente>> {
   categoria
 }
 
-class ProductoCafeteria {
+class ProductoCafeteria <<pendiente>> {
   esBebidaCaliente
 }
 
-class Alergeno {
+class Alergeno <<pendiente>> {
   nombre
 }
 
-class CuentaFidelidad {
+class CuentaFidelidad <<pendiente>> {
   saldoPuntos
 }
 
@@ -347,22 +742,22 @@ Venta "0..*" -- "1" CuentaFidelidad
 
 ' -------------------- Operación administrativa --------------------
 
-class Turno {
+class Turno <<pendiente>> {
   diaSemana
   horaInicio
   horaFin
 }
 
-class SolicitudCambioTurno {
+class SolicitudCambioTurno <<pendiente>> {
   estado
 }
 
-class SugerenciaProducto {
+class SugerenciaProducto <<pendiente>> {
   nombre
   estado
 }
 
-class PagoMensualidad {
+class PagoMensualidad <<pendiente>> {
   fecha
   monto
 }
@@ -377,54 +772,101 @@ Administrador "0..1" -- "0..*" SugerenciaProducto
 
 Socio "1" -- "0..*" PagoMensualidad
 
-' -------------------- Persistencia --------------------
-' Una clase por grupo de datos. Cada una lee/escribe sus archivos en datos/
-' y referencia otros grupos por clave (ej. login), nunca copiando objetos.
+' -------------------- Persistencia (paquete persistencia) --------------------
+' Persistencia es la fachada: carga y salva todo en datos/ usando una clase
+' por grupo de datos. Entre archivos se referencia por clave (ej. login).
+
+class Persistencia {
+  + {static} CARPETA_POR_DEFECTO : String = "datos"
+  - carpeta : File {readOnly}
+  - personas : PersistenciaPersonas {readOnly}
+  - deportes : PersistenciaDeportes {readOnly}
+  - partidos : PersistenciaPartidos {readOnly}
+  + Persistencia(carpeta : String)
+  + Persistencia()
+  + existenDatos() : boolean
+  + cargar() : Club
+  + salvar(club : Club) : void
+  + cargarOCrear() : Club
+}
+
+class ArchivoTexto {
+  + {static} SEPARADOR : String = ";"
+  + {static} SEPARADOR_LISTA : String = ","
+  + {static} procesar(archivo : File, accion : Consumer<String[]>) : void
+  + {static} escribir(archivo : File, encabezado : String, lineas : List<String>) : void
+  + {static} unir(campos : Object...) : String
+  + {static} unirLista(valores : List<String>) : String
+  + {static} separarLista(campo : String) : List<String>
+  + {static} exigirCampos(campos : String[], cantidad : int) : void
+  + {static} leerBooleano(campo : String) : boolean
+}
 
 class PersistenciaPersonas {
-  + cargar(club)
-  + salvar(club)
+  + {static} ARCHIVO : String = "personas.txt"
+  + cargar(club : Club, carpeta : File) : void
+  + salvar(club : Club, carpeta : File) : void
 }
 class PersistenciaDeportes {
-  + cargar(club)
-  + salvar(club)
-}
-class PersistenciaInstalaciones {
-  + cargar(club)
-  + salvar(club)
+  + {static} DEPORTES : String = "deportes.txt"
+  + {static} EQUIPOS : String = "equipos.txt"
+  + {static} INSCRIPCIONES : String = "inscripciones_equipo.txt"
+  + cargar(club : Club, carpeta : File) : void
+  + salvar(club : Club, carpeta : File) : void
 }
 class PersistenciaPartidos {
-  + cargar(club)
-  + salvar(club)
+  + {static} INTERNOS : String = "partidos_internos.txt"
+  + {static} COMPETENCIAS : String = "competencias.txt"
+  + {static} INSCRIPCIONES : String = "inscripciones_competencia.txt"
+  + {static} PARTIDOS_COMPETENCIA : String = "partidos_competencia.txt"
+  + {static} ESTADISTICAS : String = "estadisticas.txt"
+  + cargar(club : Club, carpeta : File) : void
+  - {static} crearEstadistica(c : String[]) : EstadisticaPartido
+  - {static} socios(club : Club, campo : String) : List<Socio>
+  - {static} logins(socios : List<Socio>) : String
+  + salvar(club : Club, carpeta : File) : void
 }
-class PersistenciaComercio {
-  + cargar(club)
-  + salvar(club)
+class PersistenciaInstalaciones <<pendiente>> {
+  + cargar(club, carpeta)
+  + salvar(club, carpeta)
 }
-class PersistenciaAdministracion {
-  + cargar(club)
-  + salvar(club)
+class PersistenciaComercio <<pendiente>> {
+  + cargar(club, carpeta)
+  + salvar(club, carpeta)
+}
+class PersistenciaAdministracion <<pendiente>> {
+  + cargar(club, carpeta)
+  + salvar(club, carpeta)
 }
 
-PersistenciaPersonas ..> Club
-PersistenciaDeportes ..> Club
-PersistenciaInstalaciones ..> Club
-PersistenciaPartidos ..> Club
-PersistenciaComercio ..> Club
-PersistenciaAdministracion ..> Club
+Persistencia *-- PersistenciaPersonas
+Persistencia *-- PersistenciaDeportes
+Persistencia *-- PersistenciaPartidos
+Persistencia *-- PersistenciaInstalaciones
+Persistencia *-- PersistenciaComercio
+Persistencia *-- PersistenciaAdministracion
+
+Persistencia ..> Club
+Persistencia ..> DatosIniciales : si no hay datos
+PersistenciaPersonas ..> ArchivoTexto
+PersistenciaDeportes ..> ArchivoTexto
+PersistenciaPartidos ..> ArchivoTexto
 
 note bottom of PersistenciaPartidos
   Orden de carga (cada grupo apunta a los anteriores):
   1. Personas  2. Deportes  3. Instalaciones
   4. Partidos y competencia  5. Comercio  6. Administración
+  PersistenciaPartidos también guarda las competencias.
 end note
 
 legend right
   **Cómo leer este diagrama**
-  -- asociación
+  -- asociación (--> navegable en un sentido)
   *-- composición
   <|-- generalización (herencia)
   ..> dependencia (usa)
+  ~ visibilidad de paquete
+  gris <<pendiente>>: todavía no está en el código
 endlegend
 
 @enduml
