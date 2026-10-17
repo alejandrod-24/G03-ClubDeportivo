@@ -210,10 +210,10 @@ Socio "2..4" -- "0..*" PartidoPractica
 
 ' -------------------- Instalaciones y entrenamiento --------------------
 
-abstract class Instalacion <<pendiente>>
+abstract class Instalacion
 
-class InstalacionIndividual <<pendiente>>
-class InstalacionConjunto <<pendiente>>
+class InstalacionIndividual
+class InstalacionConjunto
 
 class Reserva <<pendiente>>
 
@@ -223,6 +223,14 @@ class RegistroEntrenamiento <<pendiente>>
 
 Instalacion <|-- InstalacionIndividual
 Instalacion <|-- InstalacionConjunto
+
+' Clave: deporte + nombre. Las instalaciones son del Club.
+Instalacion "0..2" --> "1" Deporte
+
+note right of Instalacion
+  Clave: deporte + nombre.
+  Máximo 2 instalaciones por deporte.
+end note
 
 Socio "1" -- "0..*" Reserva
 InstalacionIndividual "1" -- "0..*" Reserva

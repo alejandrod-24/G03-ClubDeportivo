@@ -654,13 +654,27 @@ Socio "2..4" -- "0..*" PartidoPractica
 
 ' -------------------- Instalaciones y entrenamiento --------------------
 
-abstract class Instalacion <<pendiente>> {
-  nombre
-  capacidad
+abstract class Instalacion {
+  # nombre : String {readOnly}
+  # deporte : Deporte {readOnly}
+  # capacidad : int {readOnly}
+  # Instalacion(nombre : String, deporte : Deporte, capacidad : int)
+  + getNombre() : String
+  + getDeporte() : Deporte
+  + getCapacidad() : int
+  - validarNombre(nombre : String) : void
+  - validarDeporte(deporte : Deporte) : void
+  - validarCapacidad(capacidad : int) : void
 }
 
-class InstalacionIndividual <<pendiente>>
-class InstalacionConjunto <<pendiente>>
+class InstalacionIndividual {
+  - techada : boolean {readOnly}
+  + InstalacionIndividual(nombre : String, deporte : DeporteIndividual, capacidad : int, techada : boolean)
+  + estaTechada() : boolean
+}
+class InstalacionConjunto {
+  + InstalacionConjunto(nombre : String, deporte : DeporteConjunto, capacidad : int)
+}
 
 class Reserva <<pendiente>> {
   fecha
@@ -680,6 +694,14 @@ class RegistroEntrenamiento <<pendiente>> {
 
 Instalacion <|-- InstalacionIndividual
 Instalacion <|-- InstalacionConjunto
+
+' Clave: deporte + nombre. Las instalaciones son del Club.
+Instalacion "0..2" --> "1" Deporte
+
+note right of Instalacion
+  Clave: deporte + nombre.
+  Máximo 2 instalaciones por deporte.
+end note
 
 Socio "1" -- "0..*" Reserva
 InstalacionIndividual "1" -- "0..*" Reserva
