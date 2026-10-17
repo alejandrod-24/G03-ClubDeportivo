@@ -1,13 +1,31 @@
 package global;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import administracion.EstadoSolicitud;
+import administracion.PagoMensualidad;
+import administracion.SolicitudCambioTurno;
+import administracion.SugerenciaProducto;
+import administracion.TipoPeriodo;
+import administracion.Turno;
+import comercio.ArticuloDeportivo;
+import comercio.CuentaFidelidad;
+import comercio.DetalleVenta;
+import comercio.Producto;
+import comercio.ProductoCafeteria;
+import comercio.Venta;
+import comercio.VentaCafeteria;
+import comercio.VentaTienda;
 import competencias.Competencia;
 import competencias.Fase;
 import deportes.Categoria;
@@ -16,6 +34,7 @@ import deportes.DeporteConjunto;
 import deportes.Equipo;
 import deportes.InscripcionEquipo;
 import partidos.EstadisticaPartido;
+import partidos.EstadoPartido;
 import partidos.Partido;
 import partidos.PartidoCompetencia;
 import partidos.PartidoInterno;
@@ -37,6 +56,12 @@ public class Club {
 	private final Map<String, Persona> personas;
 	private final List<Deporte> deportes;
 	private final List<Competencia> competencias;
+	private final List<Producto> productos;
+	private final Map<String, CuentaFidelidad> cuentas;
+	private final List<Turno> turnos;
+	private final List<SolicitudCambioTurno> solicitudes;
+	private final List<SugerenciaProducto> sugerencias;
+	private final List<PagoMensualidad> pagos;
 	private Persona usuarioActual;
 
 	//Constructor
@@ -44,6 +69,12 @@ public class Club {
 		this.personas = new LinkedHashMap<>();
 		this.deportes = new ArrayList<>();
 		this.competencias = new ArrayList<>();
+		this.productos = new ArrayList<>();
+		this.cuentas = new LinkedHashMap<>();
+		this.turnos = new ArrayList<>();
+		this.solicitudes = new ArrayList<>();
+		this.sugerencias = new ArrayList<>();
+		this.pagos = new ArrayList<>();
 		this.usuarioActual = null;
 	}
 
@@ -79,6 +110,14 @@ public class Club {
 			throw new IllegalArgumentException(login + " no es un socio");
 		}
 		return (Socio) persona;
+	}
+
+	public Empleado buscarEmpleado(String login) {
+		Persona persona = buscarPersona(login);
+		if (!(persona instanceof Empleado)) {
+			throw new IllegalArgumentException(login + " no es un empleado");
+		}
+		return (Empleado) persona;
 	}
 
 	public Collection<Persona> getPersonas() {
@@ -164,6 +203,7 @@ public class Club {
 		for (Competencia c : competencias) {
 			todos.addAll(c.getPartidos());
 		}
+		//Integracion: agregar los partidos de practica de los deportes individuales
 		return todos;
 	}
 
@@ -179,6 +219,140 @@ public class Club {
 	//Los partidos nunca se borran, asi que el consecutivo no se repite
 	private String generarIdPartido() {
 		return "P" + (getTodosLosPartidos().size() + 1);
+	}
+
+	public void agregarProducto(Producto producto) {
+		for (Producto p : productos) {
+			if (p.getNombre().equalsIgnoreCase(producto.getNombre())) {
+				throw new IllegalArgumentException("El producto " + producto.getNombre() + " ya existe en el catalogo");
+			}
+		}
+		productos.add(producto);
+	}
+
+	public List<Producto> getProductos() {
+		return Collections.unmodifiableList(productos);
+	}
+
+	public Producto buscarProducto(String nombre) {
+		for (Producto p : productos) {
+			if (p.getNombre().equalsIgnoreCase(nombre)) {
+				return p;
+			}
+		}
+		throw new IllegalArgumentException("El producto " + nombre + " no existe");
+	}
+
+	public ArticuloDeportivo buscarArticulo(String nombre) {
+		Producto producto = buscarProducto(nombre);
+		if (!(producto instanceof ArticuloDeportivo)) {
+			throw new IllegalArgumentException(nombre + " no es un articulo de la tienda");
+		}
+		return (ArticuloDeportivo) producto;
+	}
+
+	public ProductoCafeteria buscarProductoCafeteria(String nombre) {
+		Producto producto = buscarProducto(nombre);
+		if (!(producto instanceof ProductoCafeteria)) {
+			throw new IllegalArgumentException(nombre + " no es un producto de la cafeteria");
+		}
+		return (ProductoCafeteria) producto;
+	}
+
+	private boolean existeProducto(String nombre) {
+		for (Producto p : productos) {
+			if (p.getNombre().equalsIgnoreCase(nombre)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public CuentaFidelidad getCuentaFidelidad(Persona persona) {
+		return cuentas.computeIfAbsent(persona.getLogin(), login -> new CuentaFidelidad(persona));
+	}
+
+	//Todas las ventas en orden de creacion
+	public List<Venta> getVentas() {
+		List<Venta> ventas = new ArrayList<>();
+		for (CuentaFidelidad cuenta : cuentas.values()) {
+			ventas.addAll(cuenta.getVentas());
+		}
+		ventas.sort((a, b) -> consecutivo(a.getId()) - consecutivo(b.getId()));
+		return ventas;
+	}
+
+	public Venta buscarVenta(String id) {
+		for (Venta v : getVentas()) {
+			if (v.getId().equalsIgnoreCase(id)) {
+				return v;
+			}
+		}
+		throw new IllegalArgumentException("La venta " + id + " no existe");
+	}
+
+	public void agregarTurno(Turno turno) {
+		turnos.add(turno);
+	}
+
+	public List<Turno> getTurnos() {
+		return Collections.unmodifiableList(turnos);
+	}
+
+	public Turno buscarTurno(String id) {
+		for (Turno t : turnos) {
+			if (t.getId().equalsIgnoreCase(id)) {
+				return t;
+			}
+		}
+		throw new IllegalArgumentException("El turno " + id + " no existe");
+	}
+
+	public void agregarSolicitud(SolicitudCambioTurno solicitud) {
+		solicitudes.add(solicitud);
+	}
+
+	public List<SolicitudCambioTurno> getSolicitudes() {
+		return Collections.unmodifiableList(solicitudes);
+	}
+
+	public SolicitudCambioTurno buscarSolicitud(String id) {
+		for (SolicitudCambioTurno s : solicitudes) {
+			if (s.getId().equalsIgnoreCase(id)) {
+				return s;
+			}
+		}
+		throw new IllegalArgumentException("La solicitud " + id + " no existe");
+	}
+
+	public void agregarSugerencia(SugerenciaProducto sugerencia) {
+		sugerencias.add(sugerencia);
+	}
+
+	public List<SugerenciaProducto> getSugerencias() {
+		return Collections.unmodifiableList(sugerencias);
+	}
+
+	public SugerenciaProducto buscarSugerencia(String id) {
+		for (SugerenciaProducto s : sugerencias) {
+			if (s.getId().equalsIgnoreCase(id)) {
+				return s;
+			}
+		}
+		throw new IllegalArgumentException("La sugerencia " + id + " no existe");
+	}
+
+	public void agregarPago(PagoMensualidad pago) {
+		pagos.add(pago);
+	}
+
+	public List<PagoMensualidad> getPagos() {
+		return Collections.unmodifiableList(pagos);
+	}
+
+	//Numero de un id como "V12"
+	private static int consecutivo(String id) {
+		return Integer.parseInt(id.replaceAll("\\D", ""));
 	}
 
 	// ============================================================
@@ -299,7 +473,6 @@ public class Club {
 	}
 
 	//Socio: lo retira de sus equipos e impide iniciar sesion. El historial se conserva.
-	//TODO etapa 3: retirar de academias, cancelar reservas/practicas; empleado: rechazar si tiene sesiones futuras
 	public void darDeBajaPersona(String login) {
 		Administrador admin = exigirRol(Administrador.class);
 		Persona persona = buscarPersona(login);
@@ -322,7 +495,9 @@ public class Club {
 					equipo.retirar(socio);
 				}
 			}
+			//Integracion etapa 3 (RF-ADM-02): retirarlo de sus academias y cancelar sus reservas y partidos de practica futuros
 		}
+		//Integracion etapa 3 (RF-ADM-03): rechazar la baja de un entrenador con sesiones de entrenamiento futuras
 		persona.darDeBaja();
 	}
 
@@ -392,6 +567,13 @@ public class Club {
 		}
 		if (!tieneEquipos) {
 			sb.append(" (ninguno)");
+		}
+		//Integracion etapa 3 (RF-SOC-01): mostrar academias y nivel de cada una
+		YearMonth mes = YearMonth.from(Reloj.hoy());
+		sb.append("\nPuntos de fidelidad: ").append(getCuentaFidelidad(socio).getSaldo());
+		sb.append("\nMensualidad de ").append(mes).append(": ").append(tieneMensualidadPaga(socio, mes) ? "pagada" : "pendiente");
+		if (socio.tieneBebidaCaliente()) {
+			sb.append("\nTiene una bebida caliente");
 		}
 		return sb.toString();
 	}
@@ -531,8 +713,564 @@ public class Club {
 		return socios;
 	}
 
-	//Para los empleados (RF-EMP-05 se completa en la etapa 5)
+	//Para los empleados (RF-EMP-05)
 	public String consultarCodigoDescuento() {
 		return exigirRol(Empleado.class).getCodigoDescuento();
+	}
+
+	//Integracion etapa 3: aqui van las academias, partidos de practica y sesiones de entrenamiento
+	//(RF-SOC-04 a 13, RF-ENT-09 a 16). Las usan el perfil, la baja de personas y los reportes RF-ADM-17, 19 y 21.
+
+	// ============================================================
+	// Comercio (RF-GEN-06, RF-SOC-14 a 17, RF-EMP-04 y mensualidades)
+	// ============================================================
+
+	public List<ArticuloDeportivo> consultarCatalogoTienda() {
+		exigirSesion();
+		List<ArticuloDeportivo> catalogo = new ArrayList<>();
+		for (Producto p : productos) {
+			if (p instanceof ArticuloDeportivo && p.estaActivo()) {
+				catalogo.add((ArticuloDeportivo) p);
+			}
+		}
+		return catalogo;
+	}
+
+	public List<ProductoCafeteria> consultarCatalogoCafeteria() {
+		exigirSesion();
+		List<ProductoCafeteria> catalogo = new ArrayList<>();
+		for (Producto p : productos) {
+			if (p instanceof ProductoCafeteria && p.estaActivo()) {
+				catalogo.add((ProductoCafeteria) p);
+			}
+		}
+		return catalogo;
+	}
+
+	public Producto consultarProducto(String nombre) {
+		exigirSesion();
+		return buscarProducto(nombre);
+	}
+
+	//Compran los socios y los empleados
+	private Persona exigirComprador() {
+		Persona actual = exigirSesion();
+		if (!(actual instanceof Socio) && !(actual instanceof Empleado)) {
+			throw new IllegalStateException("Acceso denegado: " + actual.getLogin() + " (" + actual.getRol() + ") no puede comprar");
+		}
+		return actual;
+	}
+
+	//Socio: puede usar el codigo de un empleado (8%) o redimir puntos, pero no ambos.
+	//Empleado: su descuento (15%) se aplica solo, salvo que redima puntos.
+	public VentaTienda comprarEnTienda(Map<String, Integer> articulos, String codigoDescuento, long puntos) {
+		Persona comprador = exigirComprador();
+		int porcentaje = 0;
+		String codigo = "";
+		if (comprador instanceof Empleado) {
+			if (codigoDescuento != null) {
+				throw new IllegalArgumentException("El descuento de empleado se aplica solo y no es acumulable con otro codigo");
+			}
+			if (puntos == 0) {
+				porcentaje = VentaTienda.DESCUENTO_EMPLEADO;
+				codigo = ((Empleado) comprador).getCodigoDescuento();
+			}
+		} else if (codigoDescuento != null) {
+			if (puntos > 0) {
+				throw new IllegalArgumentException("El codigo de descuento no es acumulable con la redencion de puntos");
+			}
+			buscarEmpleadoPorCodigo(codigoDescuento);
+			porcentaje = VentaTienda.DESCUENTO_CODIGO;
+			codigo = codigoDescuento;
+		}
+		VentaTienda venta = new VentaTienda(generarIdVenta(), Reloj.hoy(), comprador, codigo, porcentaje, puntos);
+		for (Map.Entry<String, Integer> item : articulos.entrySet()) {
+			ArticuloDeportivo articulo = buscarArticulo(item.getKey());
+			exigirDisponible(articulo);
+			venta.agregarDetalle(articulo, item.getValue());
+			if (!articulo.hayExistencia(item.getValue())) {
+				throw new IllegalStateException("No hay suficientes existencias de " + articulo.getNombre()
+						+ " en la tienda (quedan " + articulo.getExistencia(ArticuloDeportivo.TIENDA) + ")");
+			}
+		}
+		validarCompra(comprador, venta);
+		for (DetalleVenta detalle : venta.getDetalles()) {
+			((ArticuloDeportivo) detalle.getProducto()).descontar(detalle.getCantidad());
+		}
+		getCuentaFidelidad(comprador).registrarVenta(venta);
+		return venta;
+	}
+
+	//Alergenos que se le informan al comprador antes de la compra
+	public List<String> consultarAlergenos(Map<String, Integer> productosCafeteria) {
+		exigirComprador();
+		List<String> avisos = new ArrayList<>();
+		for (String nombre : productosCafeteria.keySet()) {
+			ProductoCafeteria producto = buscarProductoCafeteria(nombre);
+			if (!producto.getAlergenos().isEmpty()) {
+				avisos.add(producto.getNombre() + ": " + String.join(", ", producto.getAlergenos()));
+			}
+		}
+		return avisos;
+	}
+
+	//aceptaAlergenos: el comprador confirma que conoce los alergenos de lo que compra.
+	//Si un socio compra una bebida caliente queda marcado hasta que la termine.
+	public VentaCafeteria comprarEnCafeteria(Map<String, Integer> productosCafeteria, long puntos, int porcentajePropina,
+			boolean aceptaAlergenos) {
+		Persona comprador = exigirComprador();
+		VentaCafeteria venta = new VentaCafeteria(generarIdVenta(), Reloj.hoy(), comprador, puntos, porcentajePropina);
+		for (Map.Entry<String, Integer> item : productosCafeteria.entrySet()) {
+			ProductoCafeteria producto = buscarProductoCafeteria(item.getKey());
+			exigirDisponible(producto);
+			venta.agregarDetalle(producto, item.getValue());
+		}
+		List<String> alergenos = consultarAlergenos(productosCafeteria);
+		if (!aceptaAlergenos && !alergenos.isEmpty()) {
+			throw new IllegalStateException("Debe confirmar que conoce los alergenos: " + alergenos);
+		}
+		validarCompra(comprador, venta);
+		if (venta.tieneBebidaCaliente() && comprador instanceof Socio) {
+			//Integracion etapa 3: rechazar si el socio esta en una cancha de padel o mesa de tenis de mesa techada
+			((Socio) comprador).tomarBebidaCaliente();
+		}
+		getCuentaFidelidad(comprador).registrarVenta(venta);
+		return venta;
+	}
+
+	private String generarIdVenta() {
+		return "V" + (getVentas().size() + 1);
+	}
+
+	private static void exigirDisponible(Producto producto) {
+		if (!producto.estaActivo()) {
+			throw new IllegalStateException(producto.getNombre() + " no esta disponible");
+		}
+	}
+
+	private void validarCompra(Persona comprador, Venta venta) {
+		if (venta.getDetalles().isEmpty()) {
+			throw new IllegalArgumentException("La compra debe tener al menos un producto");
+		}
+		if (venta.getPuntosRedimidos() > venta.getSubtotal()) {
+			throw new IllegalArgumentException("Los puntos a redimir (" + venta.getPuntosRedimidos()
+					+ ") superan el subtotal ($" + venta.getSubtotal() + ")");
+		}
+		long saldo = getCuentaFidelidad(comprador).getSaldo();
+		if (venta.getPuntosRedimidos() > saldo) {
+			throw new IllegalArgumentException("Solo tiene " + saldo + " puntos para redimir");
+		}
+	}
+
+	private Empleado buscarEmpleadoPorCodigo(String codigo) {
+		for (Persona p : personas.values()) {
+			if (p instanceof Empleado && p.estaActivo() && ((Empleado) p).getCodigoDescuento().equalsIgnoreCase(codigo)) {
+				return (Empleado) p;
+			}
+		}
+		throw new IllegalArgumentException("El codigo de descuento " + codigo + " no existe");
+	}
+
+	public String consultarPuntos() {
+		CuentaFidelidad cuenta = getCuentaFidelidad(exigirComprador());
+		StringBuilder sb = new StringBuilder("Saldo: " + cuenta.getSaldo() + " puntos (1 punto = 1 peso)");
+		for (String movimiento : cuenta.getMovimientos()) {
+			sb.append("\n  ").append(movimiento);
+		}
+		return sb.toString();
+	}
+
+	public void declararFinBebidaCaliente() {
+		exigirRol(Socio.class).terminarBebidaCaliente();
+	}
+
+	//Se paga la mensualidad del mes en curso
+	public PagoMensualidad pagarMensualidad() {
+		Socio socio = exigirRol(Socio.class);
+		YearMonth mes = YearMonth.from(Reloj.hoy());
+		if (tieneMensualidadPaga(socio, mes)) {
+			throw new IllegalStateException("La mensualidad de " + mes + " ya esta pagada");
+		}
+		PagoMensualidad pago = new PagoMensualidad("M" + (pagos.size() + 1), socio, mes, Reloj.hoy(), PagoMensualidad.VALOR);
+		pagos.add(pago);
+		return pago;
+	}
+
+	private boolean tieneMensualidadPaga(Socio socio, YearMonth mes) {
+		for (PagoMensualidad p : pagos) {
+			if (p.getSocio() == socio && p.getPeriodo().equals(mes)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// ============================================================
+	// Empleado: turnos y sugerencias (RF-EMP-01 a 03, 06 y 07)
+	// ============================================================
+
+	public List<Turno> consultarTurnos() {
+		return turnosDe(exigirRol(Empleado.class));
+	}
+
+	private List<Turno> turnosDe(Empleado empleado) {
+		List<Turno> propios = new ArrayList<>();
+		for (Turno t : turnos) {
+			if (t.getEmpleado() == empleado) {
+				propios.add(t);
+			}
+		}
+		propios.sort((a, b) -> a.getDia() != b.getDia() ? a.getDia().compareTo(b.getDia())
+				: a.getHoraInicio().compareTo(b.getHoraInicio()));
+		return propios;
+	}
+
+	public SolicitudCambioTurno solicitarCambioTurno(String idTurno, LocalTime nuevaHoraInicio, LocalTime nuevaHoraFin) {
+		Empleado empleado = exigirRol(Empleado.class);
+		Turno turno = buscarTurno(idTurno);
+		if (turno.getEmpleado() != empleado) {
+			throw new IllegalStateException("El turno " + idTurno + " no es de " + empleado.getLogin());
+		}
+		Turno.validarHorario(turno.getDia(), nuevaHoraInicio, nuevaHoraFin);
+		validarSinCruceDeTurnos(empleado, turno.getDia(), nuevaHoraInicio, nuevaHoraFin, turno);
+		for (SolicitudCambioTurno s : solicitudes) {
+			if (s.getTurno() == turno && s.getEstado() == EstadoSolicitud.PENDIENTE) {
+				throw new IllegalStateException("Ya hay una solicitud pendiente (" + s.getId() + ") para el turno " + idTurno);
+			}
+		}
+		SolicitudCambioTurno solicitud = new SolicitudCambioTurno("C" + (solicitudes.size() + 1), turno, nuevaHoraInicio, nuevaHoraFin);
+		solicitudes.add(solicitud);
+		return solicitud;
+	}
+
+	public List<SolicitudCambioTurno> consultarSolicitudes() {
+		Empleado empleado = exigirRol(Empleado.class);
+		List<SolicitudCambioTurno> propias = new ArrayList<>();
+		for (SolicitudCambioTurno s : solicitudes) {
+			if (s.getEmpleado() == empleado) {
+				propias.add(s);
+			}
+		}
+		return propias;
+	}
+
+	public SugerenciaProducto sugerirProducto(String nombre, String categoria, long precioSugerido, List<String> alergenos) {
+		Empleado empleado = exigirRol(Empleado.class);
+		if (nombre != null && existeProducto(nombre)) {
+			throw new IllegalArgumentException(nombre + " ya esta en el catalogo");
+		}
+		for (SugerenciaProducto s : sugerencias) {
+			if (s.getNombre().equalsIgnoreCase(nombre) && s.getEstado() == EstadoSolicitud.PENDIENTE) {
+				throw new IllegalStateException("Ya hay una sugerencia pendiente (" + s.getId() + ") para " + nombre);
+			}
+		}
+		SugerenciaProducto sugerencia = new SugerenciaProducto("SG" + (sugerencias.size() + 1), empleado, nombre,
+				categoria, precioSugerido, alergenos);
+		sugerencias.add(sugerencia);
+		return sugerencia;
+	}
+
+	public List<SugerenciaProducto> consultarSugerencias() {
+		Empleado empleado = exigirRol(Empleado.class);
+		List<SugerenciaProducto> propias = new ArrayList<>();
+		for (SugerenciaProducto s : sugerencias) {
+			if (s.getEmpleado() == empleado) {
+				propias.add(s);
+			}
+		}
+		return propias;
+	}
+
+	// ============================================================
+	// Administrador: catalogo, inventario, sugerencias y turnos (RF-ADM-08 a 14)
+	// ============================================================
+
+	public ArticuloDeportivo crearArticulo(String nombre, String categoria, long precio) {
+		exigirRol(Administrador.class);
+		ArticuloDeportivo articulo = new ArticuloDeportivo(nombre, categoria, precio);
+		agregarProducto(articulo);
+		return articulo;
+	}
+
+	public ProductoCafeteria crearProductoCafeteria(String nombre, long precio, boolean bebidaCaliente, List<String> alergenos) {
+		exigirRol(Administrador.class);
+		ProductoCafeteria producto = new ProductoCafeteria(nombre, precio, bebidaCaliente, alergenos);
+		agregarProducto(producto);
+		return producto;
+	}
+
+	public void cambiarPrecioProducto(String nombre, long nuevoPrecio) {
+		exigirRol(Administrador.class);
+		buscarProducto(nombre).cambiarPrecio(nuevoPrecio);
+	}
+
+	public void desactivarProducto(String nombre) {
+		exigirRol(Administrador.class);
+		buscarProducto(nombre).desactivar();
+	}
+
+	public void reabastecerTienda(String articulo, int cantidad) {
+		exigirRol(Administrador.class);
+		buscarArticulo(articulo).reabastecer(cantidad);
+	}
+
+	public void moverArticulo(String articulo, String origen, String destino, int cantidad) {
+		exigirRol(Administrador.class);
+		buscarArticulo(articulo).mover(origen, destino, cantidad);
+	}
+
+	//Existencias por ubicacion de los articulos activos, con alerta si estan bajas
+	public List<String> consultarInventario() {
+		exigirRol(Administrador.class);
+		Map<String, List<String>> porUbicacion = new TreeMap<>();
+		for (Producto p : productos) {
+			if (p instanceof ArticuloDeportivo && p.estaActivo()) {
+				for (Map.Entry<String, Integer> e : ((ArticuloDeportivo) p).getExistencias().entrySet()) {
+					String linea = p.getNombre() + ": " + e.getValue()
+							+ (e.getValue() < ArticuloDeportivo.EXISTENCIA_MINIMA ? "  <- EXISTENCIAS BAJAS" : "");
+					porUbicacion.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(linea);
+				}
+			}
+		}
+		List<String> lineas = new ArrayList<>();
+		for (Map.Entry<String, List<String>> e : porUbicacion.entrySet()) {
+			lineas.add(e.getKey() + ":");
+			for (String linea : e.getValue()) {
+				lineas.add("  " + linea);
+			}
+		}
+		//Integracion etapa 3: agregar el estado del inventario de instalaciones
+		return lineas;
+	}
+
+	//Al aprobarla, el producto se crea con crearArticulo o crearProductoCafeteria
+	public void aprobarSugerencia(String id) {
+		exigirRol(Administrador.class);
+		SugerenciaProducto sugerencia = buscarSugerencia(id);
+		if (existeProducto(sugerencia.getNombre())) {
+			throw new IllegalStateException(sugerencia.getNombre() + " ya existe en el catalogo");
+		}
+		sugerencia.aprobar();
+	}
+
+	public void rechazarSugerencia(String id) {
+		exigirRol(Administrador.class);
+		buscarSugerencia(id).rechazar();
+	}
+
+	public Turno asignarTurno(String login, DayOfWeek dia, LocalTime horaInicio, LocalTime horaFin) {
+		exigirRol(Administrador.class);
+		Empleado empleado = buscarEmpleado(login);
+		if (!empleado.estaActivo()) {
+			throw new IllegalStateException(login + " esta dado de baja");
+		}
+		Turno.validarHorario(dia, horaInicio, horaFin);
+		validarSinCruceDeTurnos(empleado, dia, horaInicio, horaFin, null);
+		Turno turno = new Turno("T" + (turnos.size() + 1), empleado, dia, horaInicio, horaFin);
+		turnos.add(turno);
+		return turno;
+	}
+
+	private void validarSinCruceDeTurnos(Empleado empleado, DayOfWeek dia, LocalTime inicio, LocalTime fin, Turno excluido) {
+		for (Turno t : turnos) {
+			if (t != excluido && t.getEmpleado() == empleado && t.seCruzaCon(dia, inicio, fin)) {
+				throw new IllegalArgumentException("Se cruza con el turno " + t.getId() + " de " + empleado.getLogin());
+			}
+		}
+	}
+
+	//Se aprueba solo si se mantienen 2 entrenadores y 1 fisioterapeuta en todo el horario de atencion
+	public void aprobarSolicitudCambioTurno(String id) {
+		exigirRol(Administrador.class);
+		SolicitudCambioTurno solicitud = buscarSolicitud(id);
+		validarSinCruceDeTurnos(solicitud.getEmpleado(), solicitud.getTurno().getDia(), solicitud.getNuevaHoraInicio(),
+				solicitud.getNuevaHoraFin(), solicitud.getTurno());
+		solicitud.aprobar(turnos);
+	}
+
+	public void rechazarSolicitudCambioTurno(String id) {
+		exigirRol(Administrador.class);
+		buscarSolicitud(id).rechazar();
+	}
+
+	// ============================================================
+	// Administrador: historiales y reportes (RF-ADM-16 a 21)
+	// ============================================================
+
+	//Filtros en null = sin filtro. login: partidos en los que jugo esa persona.
+	//Integracion etapa 3: incluir al entrenador que juega un partido de practica en el filtro por login
+	public List<Partido> historialPartidos(String deporte, LocalDate desde, LocalDate hasta, String login) {
+		exigirRol(Administrador.class);
+		validarFiltros(deporte, desde, hasta, login);
+		List<Partido> resultado = new ArrayList<>();
+		for (Partido p : getTodosLosPartidos()) {
+			boolean jugo = login == null || p.estaAlineado(login);
+			if ((deporte == null || p.getDeporte().getNombre().equalsIgnoreCase(deporte)) && enPeriodo(p.getFecha(), desde, hasta) && jugo) {
+				resultado.add(p);
+			}
+		}
+		resultado.sort((a, b) -> a.getFecha().compareTo(b.getFecha()));
+		return resultado;
+	}
+
+	//Integracion etapa 3 (RF-ADM-17): historial de sesiones de entrenamiento con asistencia y evaluaciones, con filtros
+
+	private void validarFiltros(String deporte, LocalDate desde, LocalDate hasta, String login) {
+		if (deporte != null) {
+			buscarDeporte(deporte);
+		}
+		if (login != null) {
+			buscarPersona(login);
+		}
+		if (desde != null && hasta != null && desde.isAfter(hasta)) {
+			throw new IllegalArgumentException("Periodo invalido: " + desde + " es despues de " + hasta);
+		}
+	}
+
+	//Ventas por rubro (tienda, cafeteria, mensualidades), agrupadas por dia, semana o mes
+	public String reporteVentas(LocalDate desde, LocalDate hasta, TipoPeriodo tipo) {
+		exigirRol(Administrador.class);
+		validarPeriodo(desde, hasta);
+		if (tipo == null) {
+			throw new IllegalArgumentException("Debe indicar si el reporte es diario, semanal o mensual");
+		}
+		Map<LocalDate, List<Venta>> ventasPorPeriodo = new TreeMap<>();
+		Map<LocalDate, List<PagoMensualidad>> pagosPorPeriodo = new TreeMap<>();
+		List<Venta> ventasDelPeriodo = new ArrayList<>();
+		List<PagoMensualidad> pagosDelPeriodo = new ArrayList<>();
+		for (Venta v : getVentas()) {
+			if (enPeriodo(v.getFecha(), desde, hasta)) {
+				ventasPorPeriodo.computeIfAbsent(tipo.inicioDe(v.getFecha()), k -> new ArrayList<>()).add(v);
+				pagosPorPeriodo.computeIfAbsent(tipo.inicioDe(v.getFecha()), k -> new ArrayList<>());
+				ventasDelPeriodo.add(v);
+			}
+		}
+		for (PagoMensualidad p : pagos) {
+			if (enPeriodo(p.getFecha(), desde, hasta)) {
+				pagosPorPeriodo.computeIfAbsent(tipo.inicioDe(p.getFecha()), k -> new ArrayList<>()).add(p);
+				ventasPorPeriodo.computeIfAbsent(tipo.inicioDe(p.getFecha()), k -> new ArrayList<>());
+				pagosDelPeriodo.add(p);
+			}
+		}
+		StringBuilder sb = new StringBuilder("Reporte de ventas " + tipo + " del " + desde + " al " + hasta + "\n");
+		if (ventasPorPeriodo.isEmpty()) {
+			sb.append("(sin ventas en el periodo)");
+			return sb.toString();
+		}
+		for (LocalDate inicio : ventasPorPeriodo.keySet()) {
+			sb.append(tipo.describir(inicio)).append(":\n");
+			sb.append(resumirRubros(ventasPorPeriodo.get(inicio), pagosPorPeriodo.get(inicio)));
+		}
+		sb.append("Total del periodo:\n").append(resumirRubros(ventasDelPeriodo, pagosDelPeriodo));
+		return sb.toString().stripTrailing();
+	}
+
+	private static String resumirRubros(List<Venta> ventas, List<PagoMensualidad> pagosMensualidad) {
+		StringBuilder sb = new StringBuilder();
+		for (String rubro : List.of("Tienda", "Cafeteria")) {
+			int cantidad = 0;
+			long subtotal = 0;
+			long descuentos = 0;
+			long redimidos = 0;
+			long base = 0;
+			long iva = 0;
+			long consumo = 0;
+			long propinas = 0;
+			long total = 0;
+			long generados = 0;
+			for (Venta v : ventas) {
+				if (v.getRubro().equals(rubro)) {
+					cantidad++;
+					subtotal += v.getSubtotal();
+					descuentos += v.getDescuento();
+					redimidos += v.getPuntosRedimidos();
+					base += v.getBase();
+					if (v instanceof VentaTienda) {
+						iva += v.getImpuesto();
+					} else {
+						consumo += v.getImpuesto();
+					}
+					propinas += v.getPropina();
+					total += v.getTotal();
+					generados += v.getPuntosGenerados();
+				}
+			}
+			if (cantidad > 0) {
+				sb.append("  ").append(rubro).append(": ").append(cantidad).append(" ventas | subtotal $").append(subtotal)
+						.append(" | descuentos $").append(descuentos).append(" | base $").append(base)
+						.append(" | IVA $").append(iva).append(" | impuesto al consumo $").append(consumo)
+						.append(" | propinas $").append(propinas).append(" | total $").append(total)
+						.append(" | puntos generados ").append(generados).append(" | puntos redimidos ").append(redimidos).append("\n");
+			}
+		}
+		if (!pagosMensualidad.isEmpty()) {
+			long total = 0;
+			for (PagoMensualidad p : pagosMensualidad) {
+				total += p.getMonto();
+			}
+			sb.append("  Mensualidades: ").append(pagosMensualidad.size()).append(" pagos | total $").append(total).append("\n");
+		}
+		return sb.toString();
+	}
+
+	//Integracion etapa 3 (RF-ADM-19): reporte de asistencias (convocatorias, asistencias, faltas, tardanzas
+	//y porcentaje de cada jugador en las sesiones del periodo), con la misma validacion de periodo
+
+	//Victorias, empates y derrotas de cada equipo del club, y el marcador de cada partido jugado.
+	//Integracion etapa 3: los partidos de practica tambien apareceran en la lista de partidos
+	public String reporteResultados(LocalDate desde, LocalDate hasta) {
+		exigirRol(Administrador.class);
+		validarPeriodo(desde, hasta);
+		Map<String, int[]> balance = new TreeMap<>();
+		StringBuilder partidos = new StringBuilder();
+		for (Partido p : historialPartidos(null, desde, hasta, null)) {
+			if (p.getEstado() == EstadoPartido.JUGADO) {
+				partidos.append("  ").append(p).append("\n");
+				if (p instanceof PartidoInterno) {
+					PartidoInterno interno = (PartidoInterno) p;
+					sumarResultado(balance, interno.getLocal(), p.getMarcadorLocal(), p.getMarcadorVisitante());
+					sumarResultado(balance, interno.getVisitante(), p.getMarcadorVisitante(), p.getMarcadorLocal());
+				} else if (p instanceof PartidoCompetencia) {
+					sumarResultado(balance, ((PartidoCompetencia) p).getEquipo(), p.getMarcadorLocal(), p.getMarcadorVisitante());
+				}
+			}
+		}
+		StringBuilder sb = new StringBuilder("Reporte de resultados del " + desde + " al " + hasta + "\n");
+		if (partidos.length() == 0) {
+			sb.append("(sin partidos jugados en el periodo)");
+			return sb.toString();
+		}
+		sb.append("Equipos (internos y de competencia):\n");
+		for (Map.Entry<String, int[]> e : balance.entrySet()) {
+			sb.append("  ").append(e.getKey()).append(": ").append(e.getValue()[0]).append(" victorias, ")
+					.append(e.getValue()[1]).append(" empates, ").append(e.getValue()[2]).append(" derrotas\n");
+		}
+		sb.append("Partidos:\n").append(partidos);
+		return sb.toString().stripTrailing();
+	}
+
+	private static void sumarResultado(Map<String, int[]> balance, Equipo equipo, int aFavor, int enContra) {
+		int[] resultado = balance.computeIfAbsent(equipo.getDeporte().getNombre() + " - " + equipo.getNombre(), k -> new int[3]);
+		if (aFavor > enContra) {
+			resultado[0]++;
+		} else if (aFavor == enContra) {
+			resultado[1]++;
+		} else {
+			resultado[2]++;
+		}
+	}
+
+	//Integracion etapa 3 (RF-ADM-21): reporte de evolucion de rankings (puntaje inicial y final del periodo,
+	//variacion e historial de cada socio de cada academia), con la misma validacion de periodo
+
+	private static void validarPeriodo(LocalDate desde, LocalDate hasta) {
+		if (desde == null || hasta == null || desde.isAfter(hasta)) {
+			throw new IllegalArgumentException("Periodo invalido: debe tener inicio y fin, y el inicio no puede ser posterior al fin");
+		}
+	}
+
+	//null en un extremo = sin limite
+	private static boolean enPeriodo(LocalDate fecha, LocalDate desde, LocalDate hasta) {
+		return (desde == null || !fecha.isBefore(desde)) && (hasta == null || !fecha.isAfter(hasta));
 	}
 }

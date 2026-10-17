@@ -1,11 +1,15 @@
 package pruebas;
 
+import java.io.File;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import global.Club;
 import global.DatosIniciales;
 import global.Reloj;
+import persistencia.Persistencia;
 
 /**
  * Utilidades para los programas de prueba de consola.
@@ -82,6 +86,32 @@ public class Prueba {
 		} else {
 			fallos++;
 			System.out.println("  [FALLO] " + descripcion);
+		}
+	}
+
+	public static Map<String, Integer> items(Object... pares) {
+		Map<String, Integer> items = new LinkedHashMap<>();
+		for (int i = 0; i + 1 < pares.length; i += 2) {
+			items.put((String) pares[i], (Integer) pares[i + 1]);
+		}
+		return items;
+	}
+
+	//Guarda el club en una carpeta temporal dentro de datos/, lo carga de nuevo y borra la carpeta
+	public static Club guardarYRecargar(Club club, String nombreCarpeta) {
+		File carpeta = new File(Persistencia.CARPETA_POR_DEFECTO, nombreCarpeta);
+		try {
+			Persistencia persistencia = new Persistencia(carpeta.getPath());
+			persistencia.salvar(club);
+			return persistencia.cargar();
+		} finally {
+			File[] archivos = carpeta.listFiles();
+			if (archivos != null) {
+				for (File f : archivos) {
+					f.delete();
+				}
+			}
+			carpeta.delete();
 		}
 	}
 

@@ -8,8 +8,8 @@ import global.DatosIniciales;
 /**
  * Punto de entrada de la persistencia. Carga los grupos en orden
  * (cada grupo referencia a los anteriores por clave):
- * 1. Personas  2. Deportes  3. Partidos y competencias
- * (Instalaciones, Comercio y Administracion se agregan en las siguientes etapas.)
+ * 1. Personas  2. Deportes  3. Partidos y competencias  4. Comercio  5. Administracion
+ * Integracion etapa 3: las instalaciones se cargan entre deportes y partidos; las academias, partidos de practica y sesiones de entrenamiento se agregan a sus grupos.
  */
 public class Persistencia {
 
@@ -20,6 +20,8 @@ public class Persistencia {
 	private final PersistenciaPersonas personas = new PersistenciaPersonas();
 	private final PersistenciaDeportes deportes = new PersistenciaDeportes();
 	private final PersistenciaPartidos partidos = new PersistenciaPartidos();
+	private final PersistenciaComercio comercio = new PersistenciaComercio();
+	private final PersistenciaAdministracion administracion = new PersistenciaAdministracion();
 
 	//Constructor
 	public Persistencia(String carpeta) {
@@ -44,6 +46,8 @@ public class Persistencia {
 		personas.cargar(club, carpeta);
 		deportes.cargar(club, carpeta);
 		partidos.cargar(club, carpeta);
+		comercio.cargar(club, carpeta);
+		administracion.cargar(club, carpeta);
 		return club;
 	}
 
@@ -54,6 +58,8 @@ public class Persistencia {
 		personas.salvar(club, carpeta);
 		deportes.salvar(club, carpeta);
 		partidos.salvar(club, carpeta);
+		comercio.salvar(club, carpeta);
+		administracion.salvar(club, carpeta);
 	}
 
 	//Si ya hay datos guardados los carga; si no, crea el club con los datos iniciales

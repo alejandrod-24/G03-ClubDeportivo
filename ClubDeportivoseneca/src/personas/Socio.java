@@ -10,6 +10,8 @@ public class Socio extends Persona {
 
 	//Atributos
 	private final LocalDate fechaNacimiento;
+	//Dia en que compro una bebida caliente (null si no tiene)
+	private LocalDate fechaBebidaCaliente;
 
 
 	//Constructor
@@ -45,6 +47,30 @@ public class Socio extends Persona {
 	@Override
 	public Rol getRol() {
 		return Rol.SOCIO;
+	}
+
+	//Bebida caliente: se marca al comprarla y vence al terminar el dia
+	public boolean tieneBebidaCaliente() {
+		return fechaBebidaCaliente != null && !fechaBebidaCaliente.isBefore(Reloj.hoy());
+	}
+
+	public LocalDate getFechaBebidaCaliente() {
+		return fechaBebidaCaliente;
+	}
+
+	public void tomarBebidaCaliente() {
+		fechaBebidaCaliente = Reloj.hoy();
+	}
+
+	public void terminarBebidaCaliente() {
+		if (!tieneBebidaCaliente()) {
+			throw new IllegalStateException(login + " no tiene una bebida caliente");
+		}
+		fechaBebidaCaliente = null;
+	}
+
+	public void restaurarBebidaCaliente(LocalDate fecha) {
+		fechaBebidaCaliente = fecha;
 	}
 
 	//Validar fecha de nacimiento

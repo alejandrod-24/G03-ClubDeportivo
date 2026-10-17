@@ -10,8 +10,8 @@ import global.Reloj;
 import partidos.EstadisticaFutbol;
 
 /**
- * 2. Consulta de competencias y equipos (cualquier usuario autenticado).
- * RF-GEN-05, 07. (La consulta de catalogos RF-GEN-06 llega con la etapa de comercio.)
+ * 2. Consulta de competencias, catalogos y equipos (cualquier usuario autenticado).
+ * RF-GEN-05, 06, 07
  */
 public class PruebaConsultasGenerales {
 
@@ -49,6 +49,16 @@ public class PruebaConsultasGenerales {
 		System.out.println();
 		Prueba.info(club.consultarCompetencia(DatosIniciales.LIGA_CERROS, DatosIniciales.TEMPORADA).generarResumen());
 		Prueba.debeRechazar("competencia inexistente", () -> club.consultarCompetencia("Copa America", 2026));
+
+		Prueba.seccion("Consultar catalogos (RF-GEN-06)");
+		Prueba.info("Tienda:");
+		Prueba.lista(club.consultarCatalogoTienda());
+		Prueba.info("Cafeteria:");
+		Prueba.lista(club.consultarCatalogoCafeteria());
+		Prueba.debeFuncionar("consultar un producto", () -> Prueba.info(club.consultarProducto("Galletas de mani").toString()));
+		Prueba.debeRechazar("producto inexistente", () -> club.consultarProducto("Pizza"));
+		club.cerrarSesion();
+		Prueba.debeRechazar("consultar el catalogo sin iniciar sesion", () -> club.consultarCatalogoTienda());
 	}
 
 	//Un partido interno jugado, uno programado y un partido de liga jugado

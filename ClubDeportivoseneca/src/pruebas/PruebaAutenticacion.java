@@ -76,6 +76,9 @@ public class PruebaAutenticacion {
 					otro.getPersonas().size() == club.getPersonas().size());
 			Prueba.verificar("se recuperan los equipos de futbol",
 					otro.buscarDeporteConjunto("Futbol").getEquipos().size() == club.buscarDeporteConjunto("Futbol").getEquipos().size());
+			Prueba.verificar("se recuperan los " + club.getProductos().size() + " productos y los "
+					+ club.getTurnos().size() + " turnos", otro.getProductos().size() == club.getProductos().size()
+							&& otro.getTurnos().size() == club.getTurnos().size());
 			Prueba.debeFuncionar("la contrasena cambiada de ana se conserva tras recargar",
 					() -> otro.iniciarSesion("ana", "nueva123"));
 		}

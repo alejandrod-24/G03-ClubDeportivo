@@ -1,14 +1,20 @@
 package global;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
+import administracion.Turno;
+import comercio.ArticuloDeportivo;
+import comercio.ProductoCafeteria;
 import competencias.Competencia;
 import deportes.Categoria;
 import deportes.DeporteConjunto;
 import deportes.DeporteIndividual;
 import deportes.Equipo;
 import personas.Administrador;
+import personas.Empleado;
 import personas.Entrenador;
 import personas.Fisioterapeuta;
 import personas.Socio;
@@ -17,7 +23,7 @@ import personas.Socio;
  * Club de ejemplo que se usa cuando no hay datos guardados y en los programas de prueba.
  * Las edades se calculan respecto a Reloj.hoy() para que las categorias no cambien con el tiempo.
  *
- * Usuarios: admin/admin123, carlos/carlos123 y laura/laura123 (entrenadores),
+ * Usuarios: admin/admin123, carlos/carlos123, laura/laura123 y jaime/jaime123 (entrenadores),
  * pedro/pedro123 (fisioterapeuta). Todos los socios tienen password 1234.
  */
 public class DatosIniciales {
@@ -34,6 +40,7 @@ public class DatosIniciales {
 		club.registrarPersona(new Entrenador("Carlos Ruiz", "carlos", "carlos123", "DESC-CARLOS"));
 		club.registrarPersona(new Entrenador("Laura Gomez", "laura", "laura123", "DESC-LAURA"));
 		club.registrarPersona(new Fisioterapeuta("Pedro Diaz", "pedro", "pedro123", "DESC-PEDRO"));
+		club.registrarPersona(new Entrenador("Jaime Ortiz", "jaime", "jaime123", "DESC-JAIME"));
 
 		String[][] mayores = {
 				{"ana", "Ana Torres"}, {"luis", "Luis Gomez"}, {"camila", "Camila Rojas"}, {"jorge", "Jorge Perez"},
@@ -102,6 +109,33 @@ public class DatosIniciales {
 		club.agregarCompetencia(Competencia.ascun(ASCUN_BALONCESTO, TEMPORADA, baloncesto, Categoria.MAYORES,
 				List.of("Universidad Nacional", "Universidad de La Sabana", "Universidad EAFIT")));
 
+		//Integracion: socios de ejemplo inscritos en las academias, con su nivel
+
+		// ---- Tienda (existencias en Tienda y Bodega) y cafeteria
+		agregarArticulo(club, "Balon de futbol", "Balones", 80000, 10, 20);
+		agregarArticulo(club, "Raqueta de tenis", "Raquetas", 350000, 4, 6);
+		agregarArticulo(club, "Tubo de pelotas", "Pelotas", 25000, 2, 30);
+		agregarArticulo(club, "Uniforme Seneca", "Uniformes", 120000, 8, 0);
+		agregarArticulo(club, "Malla de voleibol", "Mallas", 200000, 0, 3);
+		club.agregarProducto(new ProductoCafeteria("Cafe", 5000, true, List.of()));
+		club.agregarProducto(new ProductoCafeteria("Chocolate caliente", 6000, true, List.of("Lacteos")));
+		club.agregarProducto(new ProductoCafeteria("Jugo natural", 7000, false, List.of()));
+		club.agregarProducto(new ProductoCafeteria("Agua", 3000, false, List.of()));
+		club.agregarProducto(new ProductoCafeteria("Galletas de mani", 4000, false, List.of("Mani", "Gluten")));
+		club.agregarProducto(new ProductoCafeteria("Sandwich", 12000, false, List.of("Gluten", "Lacteos")));
+
+		// ---- Turnos: carlos, laura y pedro cubren todo el horario; jaime refuerza lunes, miercoles y viernes en la manana
+		for (DayOfWeek dia : DayOfWeek.values()) {
+			if (dia != DayOfWeek.SUNDAY) {
+				for (String login : List.of("carlos", "laura", "pedro")) {
+					agregarTurno(club, login, dia, Turno.APERTURA, Turno.CIERRE);
+				}
+			}
+		}
+		for (DayOfWeek dia : List.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)) {
+			agregarTurno(club, "jaime", dia, Turno.APERTURA, LocalTime.of(14, 0));
+		}
+
 		return club;
 	}
 
@@ -113,5 +147,19 @@ public class DatosIniciales {
 		for (String[] j : jugadores) {
 			equipo.inscribir(club.buscarSocio(j[0]), j[1], Integer.parseInt(j[2]));
 		}
+	}
+
+	private static void agregarArticulo(Club club, String nombre, String categoria, long precio, int enTienda, int enBodega) {
+		ArticuloDeportivo articulo = new ArticuloDeportivo(nombre, categoria, precio);
+		articulo.restaurarExistencia(ArticuloDeportivo.TIENDA, enTienda);
+		if (enBodega > 0) {
+			articulo.restaurarExistencia("Bodega", enBodega);
+		}
+		club.agregarProducto(articulo);
+	}
+
+	private static void agregarTurno(Club club, String login, DayOfWeek dia, LocalTime inicio, LocalTime fin) {
+		Empleado empleado = club.buscarEmpleado(login);
+		club.agregarTurno(new Turno("T" + (club.getTurnos().size() + 1), empleado, dia, inicio, fin));
 	}
 }
