@@ -1,0 +1,7 @@
+# deporte;nombre;categoria;cupoMaximo;activo
+Futbol;Seneca FC;MAYORES;12;true
+Futbol;Seneca United;MAYORES;12;true
+Futbol;Seneca Sub15;SUB15;1;true
+Baloncesto;Tigres;MAYORES;10;true
+Baloncesto;Panteras;MAYORES;10;true
+Voleibol;Aguilas;MAYORES;10;true

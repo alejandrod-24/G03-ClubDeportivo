@@ -6,5 +6,9 @@ public class Fisioterapeuta extends Empleado {
 	public Fisioterapeuta(String nombre, String login, String password, String codigoDescuento) {
 		super(nombre, login, password, codigoDescuento);
 	}
-}
 
+	@Override
+	public Rol getRol() {
+		return Rol.FISIOTERAPEUTA;
+	}
+}

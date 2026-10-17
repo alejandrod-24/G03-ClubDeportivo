@@ -1,0 +1,3 @@
+# nombre;entidad;temporada;deporte;categoria;formato;nominaMinima;amarillasParaSuspension;finalizada;instituciones
+Liga de los Cerros;Torneo de los Cerros;2026;Futbol;MAYORES;LIGA;7;3;false;Universidad Javeriana,Universidad del Rosario,Universidad Externado
+ASCUN Baloncesto;ASCUN;2026;Baloncesto;MAYORES;GRUPOS_Y_ELIMINACION;6;2;false;Universidad Nacional,Universidad de La Sabana,Universidad EAFIT

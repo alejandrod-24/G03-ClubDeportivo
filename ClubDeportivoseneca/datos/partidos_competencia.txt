@@ -1,0 +1,1 @@
+# id;competencia;temporada;equipo;rival;escenario;fecha;fase;estado;marcadorClub;marcadorRival;alineacion

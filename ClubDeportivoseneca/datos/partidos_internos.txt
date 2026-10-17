@@ -1,0 +1,1 @@
+# id;deporte;local;visitante;fecha;estado;marcadorLocal;marcadorVisitante;alineacionLocal;alineacionVisitante

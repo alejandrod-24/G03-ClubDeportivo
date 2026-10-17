@@ -1,0 +1,1 @@
+# idPartido;deporte;login;valores (Futbol: goles;asistencias;amarillas;roja | Baloncesto: puntos;rebotes | Voleibol: aces;bloqueos)

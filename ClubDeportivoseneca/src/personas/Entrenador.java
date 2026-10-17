@@ -6,4 +6,9 @@ public class Entrenador extends Empleado {
 	public Entrenador(String nombre, String login, String password, String codigoDescuento) {
 		super(nombre, login, password, codigoDescuento);
 	}
+
+	@Override
+	public Rol getRol() {
+		return Rol.ENTRENADOR;
+	}
 }
