@@ -7,6 +7,7 @@ public abstract class Deporte {
 
 	//Constructor
 	protected Deporte(String nombre) {
+		validarNombre(nombre);
 		this.nombre = nombre;
 	}
 	

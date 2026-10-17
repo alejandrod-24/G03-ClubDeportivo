@@ -107,8 +107,8 @@ Deporte <|-- DeporteIndividual
 class Equipo {
   - deporte : DeporteConjunto {readOnly}
   - nombre : String {readOnly}
-  categoria : Categoria
-  cupoMaximo
+  - categoria : Categoria
+  - cupoMaximo : int {readOnly}
   ~ Equipo(deporte : DeporteConjunto, nombre : String, categoria : Categoria, cupoMaximo : int)
 }
 
