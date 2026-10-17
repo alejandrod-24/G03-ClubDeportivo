@@ -1,14 +1,21 @@
 @startuml
 ' ============================================================
 ' Club Deportivo Séneca (CDS)
-' Diagrama de clases de análisis
-' Entrega 1 - Proyecto 1
+' Diagrama de clases de alto nivel
+' Entrega 2 - Proyecto 1
+' Sincronizado con el código del commit 06c403a (2026-10-17).
+' <<pendiente>> = clase del diseño que todavía no existe en el código.
 ' ============================================================
 
 title Club Deportivo Séneca - Diagrama de clases (alto nivel)
 
 hide empty members
 skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor<<pendiente>> #EEEEEE
+  BorderColor<<pendiente>> #999999
+  FontColor<<pendiente>> #777777
+}
 
 ' -------------------- Club (raíz del dominio) --------------------
 
@@ -20,19 +27,38 @@ note top of Club
   Supuesto: el sistema maneja un solo club.
   Hay un solo Administrador: registrarPersona
   rechaza un segundo.
+  Maneja la sesión (usuarioActual) y exige el
+  rol antes de cada acción.
   No conoce archivos: la persistencia va en
-  clases aparte, una por grupo de datos.
+  el paquete persistencia.
 end note
 
-Club "1" -- "0..*" Persona
-Club "1" -- "0..*" Deporte
+Club "1" --> "0..*" Persona
+Club "1" --> "0..1" Persona : usuarioActual
+Club "1" --> "0..*" Deporte
+Club "1" --> "0..*" Competencia
 Club "1" -- "0..*" Instalacion
 Club "1" -- "0..*" Producto
-Club "1" -- "0..*" Competencia
+
+' Utilidades del paquete global
+class DatosIniciales
+class Reloj
+
+DatosIniciales ..> Club : crea
+
+note bottom of Reloj
+  Fecha "de hoy" del sistema.
+  Las pruebas la fijan para que
+  los resultados no cambien.
+end note
 
 ' -------------------- Personas y roles --------------------
 
 abstract class Persona
+
+enum Rol
+
+Persona ..> Rol
 
 class Socio
 
@@ -69,28 +95,32 @@ Equipo --> Categoria
 
 class InscripcionEquipo
 
-class Academia
+class Academia <<pendiente>>
 
-class InscripcionAcademia
+class InscripcionAcademia <<pendiente>>
 
-class Ranking
+class Ranking <<pendiente>>
 
 DeporteConjunto "1" <--> "0..*" Equipo
-Socio "1" -- "0..*" InscripcionEquipo
-Equipo "1" -- "0..*" InscripcionEquipo
+Equipo "1" <--> "0..*" InscripcionEquipo
+InscripcionEquipo "0..*" --> "1" Socio
 
 DeporteIndividual "1" -- "1" Academia
 Socio "1" -- "0..*" InscripcionAcademia
 Academia "1" -- "0..*" InscripcionAcademia
 InscripcionAcademia "1" -- "1" Ranking
 
-' -------------------- Partidos y competencia --------------------
+' -------------------- Partidos --------------------
 
 abstract class Partido
 
+enum EstadoPartido
+
+Partido --> EstadoPartido
+
 class PartidoInterno
 class PartidoCompetencia
-class PartidoPractica
+class PartidoPractica <<pendiente>>
 
 Partido <|-- PartidoInterno
 Partido <|-- PartidoCompetencia
@@ -104,59 +134,76 @@ class EstadisticaFutbol
 
 class EstadisticaBaloncesto
 
-class EstadisticaTenis
+class EstadisticaVoleibol
 
-class EstadisticaPadel
+class EstadisticaTenis <<pendiente>>
 
-class EstadisticaTenisDeMesa
+class EstadisticaPadel <<pendiente>>
+
+class EstadisticaTenisDeMesa <<pendiente>>
 
 EstadisticaPartido <|-- EstadisticaFutbol
 EstadisticaPartido <|-- EstadisticaBaloncesto
+EstadisticaPartido <|-- EstadisticaVoleibol
 EstadisticaPartido <|-- EstadisticaTenis
 EstadisticaPartido <|-- EstadisticaPadel
 EstadisticaPartido <|-- EstadisticaTenisDeMesa
 
 note bottom of EstadisticaPartido
-  Alcance del sistema (supuesto de diseño):
-  conjunto: fútbol, baloncesto
+  Alcance en el código hoy:
+  conjunto: fútbol, baloncesto, voleibol
   individual: tenis, pádel, tenis de mesa
+  (sin estadísticas todavía).
   Agregar un deporte = agregar una subclase.
 end note
 
-Deporte "1" -- "0..*" Partido
-' Clase de asociación: una estadística por cada par (Partido, jugador que participó)
-Partido "0..*" -- "1..*" Socio : participa
-(Partido, Socio) .. EstadisticaPartido
+' Una estadística por jugador alineado; el jugador se guarda por login.
+Partido "1" *-- "0..*" EstadisticaPartido : por login
 
+DeporteConjunto "1" <--> "0..*" PartidoInterno
 PartidoInterno "0..*" --> "1" Equipo : local
 PartidoInterno "0..*" --> "1" Equipo : visitante
+PartidoInterno "0..*" --> "0..*" Socio : alineaciones
 
 note right of EstadisticaFutbol
   La suspensión no se guarda: se calcula
-  (2 amarillas o 1 roja → fuera el siguiente
-  partido de su equipo).
+  (roja o 2 amarillas en el partido anterior;
+  en competencia, también por amarillas
+  acumuladas). Lo calculan PartidoInterno
+  y Competencia, no Socio.
 end note
+
+' -------------------- Competencias --------------------
 
 class Competencia
 
-class FormatoCompetencia
+enum FormatoCompetencia
+
+enum Fase
 
 class InscripcionCompetencia
-class RegistroNomina
-class Institucion
-class Escenario
 
-Competencia "0..*" -- "1" DeporteConjunto
-Competencia "0..*" -- "1" FormatoCompetencia
-Competencia "1" -- "0..*" InscripcionCompetencia
-Equipo "1" -- "0..*" InscripcionCompetencia
-InscripcionCompetencia "1" *-- "1..*" RegistroNomina
-Socio "1" -- "0..*" RegistroNomina
+class FilaPosicion
 
+Competencia "0..*" --> "1" DeporteConjunto
+Competencia --> Categoria
+Competencia --> FormatoCompetencia
+Competencia "1" <--> "0..*" InscripcionCompetencia
+InscripcionCompetencia "0..*" --> "1" Equipo
+InscripcionCompetencia "0..*" --> "0..*" Socio : nomina
+Competencia ..> FilaPosicion : tabla de posiciones
+
+' Navegable en los dos sentidos (Competencia tiene la lista y el partido su competencia)
 Competencia "1" *-- "0..*" PartidoCompetencia
 PartidoCompetencia "0..*" --> "1" Equipo
-PartidoCompetencia "0..*" --> "1" Institucion
-PartidoCompetencia "0..*" --> "1" Escenario
+PartidoCompetencia --> Fase
+PartidoCompetencia "0..*" --> "0..*" Socio : alineacion
+
+note bottom of InscripcionCompetencia
+  La nómina es una lista de Socio
+  (no hay RegistroNomina). Institución
+  rival y escenario son String, no clases.
+end note
 
 DeporteIndividual "1" -- "0..*" PartidoPractica
 Socio "2..4" -- "0..*" PartidoPractica
@@ -168,14 +215,22 @@ abstract class Instalacion
 class InstalacionIndividual
 class InstalacionConjunto
 
-class Reserva
+class Reserva <<pendiente>>
 
-class SesionEntrenamiento
+class SesionEntrenamiento <<pendiente>>
 
-class RegistroEntrenamiento
+class RegistroEntrenamiento <<pendiente>>
 
 Instalacion <|-- InstalacionIndividual
 Instalacion <|-- InstalacionConjunto
+
+' Clave: deporte + nombre. Las instalaciones son del Club.
+Instalacion "0..2" --> "1" Deporte
+
+note right of Instalacion
+  Clave: deporte + nombre.
+  Máximo 2 instalaciones por deporte.
+end note
 
 Socio "1" -- "0..*" Reserva
 InstalacionIndividual "1" -- "0..*" Reserva
@@ -188,22 +243,22 @@ Socio "1" -- "0..*" RegistroEntrenamiento
 
 ' -------------------- Comercio e inventario --------------------
 
-abstract class Venta
+abstract class Venta <<pendiente>>
 
-class VentaTienda
-class VentaCafeteria
+class VentaTienda <<pendiente>>
+class VentaCafeteria <<pendiente>>
 
-class DetalleVenta
+class DetalleVenta <<pendiente>>
 
-abstract class Producto
+abstract class Producto <<pendiente>>
 
-class ArticuloDeportivo
+class ArticuloDeportivo <<pendiente>>
 
-class ProductoCafeteria
+class ProductoCafeteria <<pendiente>>
 
-class Alergeno
+class Alergeno <<pendiente>>
 
-class CuentaFidelidad
+class CuentaFidelidad <<pendiente>>
 
 Venta <|-- VentaTienda
 Venta <|-- VentaCafeteria
@@ -221,13 +276,13 @@ Venta "0..*" -- "1" CuentaFidelidad
 
 ' -------------------- Operación administrativa --------------------
 
-class Turno
+class Turno <<pendiente>>
 
-class SolicitudCambioTurno
+class SolicitudCambioTurno <<pendiente>>
 
-class SugerenciaProducto
+class SugerenciaProducto <<pendiente>>
 
-class PagoMensualidad
+class PagoMensualidad <<pendiente>>
 
 Empleado "1" -- "0..*" Turno
 Empleado "1" -- "0..*" SolicitudCambioTurno
@@ -239,36 +294,47 @@ Administrador "0..1" -- "0..*" SugerenciaProducto
 
 Socio "1" -- "0..*" PagoMensualidad
 
-' -------------------- Persistencia --------------------
-' Una clase por grupo de datos. Cada una lee/escribe sus archivos en datos/
-' y referencia otros grupos por clave (ej. login), nunca copiando objetos.
+' -------------------- Persistencia (paquete persistencia) --------------------
+' Persistencia es la fachada: carga y salva todo en datos/ usando una clase
+' por grupo de datos. Entre archivos se referencia por clave (ej. login).
+
+class Persistencia
+class ArchivoTexto
 
 class PersistenciaPersonas
 class PersistenciaDeportes
-class PersistenciaInstalaciones
 class PersistenciaPartidos
-class PersistenciaComercio
-class PersistenciaAdministracion
+class PersistenciaInstalaciones <<pendiente>>
+class PersistenciaComercio <<pendiente>>
+class PersistenciaAdministracion <<pendiente>>
 
-PersistenciaPersonas ..> Club
-PersistenciaDeportes ..> Club
-PersistenciaInstalaciones ..> Club
-PersistenciaPartidos ..> Club
-PersistenciaComercio ..> Club
-PersistenciaAdministracion ..> Club
+Persistencia *-- PersistenciaPersonas
+Persistencia *-- PersistenciaDeportes
+Persistencia *-- PersistenciaPartidos
+Persistencia *-- PersistenciaInstalaciones
+Persistencia *-- PersistenciaComercio
+Persistencia *-- PersistenciaAdministracion
+
+Persistencia ..> Club
+Persistencia ..> DatosIniciales : si no hay datos
+PersistenciaPersonas ..> ArchivoTexto
+PersistenciaDeportes ..> ArchivoTexto
+PersistenciaPartidos ..> ArchivoTexto
 
 note bottom of PersistenciaPartidos
   Orden de carga (cada grupo apunta a los anteriores):
   1. Personas  2. Deportes  3. Instalaciones
   4. Partidos y competencia  5. Comercio  6. Administración
+  PersistenciaPartidos también guarda las competencias.
 end note
 
 legend right
   **Cómo leer este diagrama**
-  -- asociación
+  -- asociación (--> navegable en un sentido)
   *-- composición
   <|-- generalización (herencia)
   ..> dependencia (usa)
+  gris <<pendiente>>: todavía no está en el código
 endlegend
 
 @enduml
