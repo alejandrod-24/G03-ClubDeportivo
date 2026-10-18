@@ -75,8 +75,11 @@ public class PruebaGestionInventario {
 		String toalla = club.sugerirProducto("Toalla deportiva", "Accesorios", 35000, List.of()).getId();
 		club.iniciarSesion("admin", "admin123");
 		club.crearArticulo("Toalla deportiva", "Accesorios", 35000);
-		Prueba.debeFuncionar("aprobar el gel de recuperacion", () -> club.aprobarSugerencia(gel));
-		Prueba.debeFuncionar("el gel aprobado ya se puede crear en el catalogo",
+		Prueba.debeFuncionar("aprobar el gel de recuperacion: entra a la tienda sin existencias",
+				() -> Prueba.info("Agregado al catalogo: " + club.aprobarSugerencia(gel)));
+		Prueba.verificar("el gel aprobado ya esta en el catalogo de la tienda",
+				club.consultarCatalogoTienda().contains(club.buscarProducto("Gel de recuperacion")));
+		Prueba.debeRechazar("crear de nuevo el gel: ya esta en el catalogo",
 				() -> club.crearArticulo("Gel de recuperacion", "Recuperacion", 45000));
 		Prueba.debeFuncionar("rechazar la barra de proteina", () -> club.rechazarSugerencia(barra));
 		Prueba.debeRechazar("aprobar la toalla: ya existe en el catalogo", () -> club.aprobarSugerencia(toalla));

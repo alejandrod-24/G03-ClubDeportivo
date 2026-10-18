@@ -1,7 +1,7 @@
-# CONJUNTO;nombre;minimoJugadores;permiteEmpate;posiciones | INDIVIDUAL;nombre
+# CONJUNTO;nombre;minimoJugadores;permiteEmpate;posiciones | INDIVIDUAL;nombre;maximoSimultaneas;modalidades
 CONJUNTO;Futbol;7;true;Portero,Defensa,Mediocampista,Delantero
 CONJUNTO;Baloncesto;5;false;Base,Escolta,Alero,Ala-pivot,Pivot
 CONJUNTO;Voleibol;6;false;Armador,Opuesto,Central,Punta,Libero
-INDIVIDUAL;Tenis
-INDIVIDUAL;Padel
-INDIVIDUAL;Tenis de mesa
+INDIVIDUAL;Tenis;2;SENCILLOS,DOBLES
+INDIVIDUAL;Padel;2;DOBLES
+INDIVIDUAL;Tenis de mesa;2;SENCILLOS,DOBLES

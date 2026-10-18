@@ -2,6 +2,7 @@ package global;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -30,14 +31,30 @@ import competencias.Competencia;
 import competencias.Fase;
 import deportes.Categoria;
 import deportes.Deporte;
+import deportes.Academia;
 import deportes.DeporteConjunto;
+import deportes.DeporteIndividual;
 import deportes.Equipo;
+import deportes.InscripcionAcademia;
 import deportes.InscripcionEquipo;
+import deportes.Nivel;
+import deportes.RegistroRanking;
+import entrenamiento.Asistencia;
+import entrenamiento.RegistroEntrenamiento;
+import entrenamiento.SesionEntrenamiento;
+import instalaciones.Actividad;
+import instalaciones.Instalacion;
+import instalaciones.InstalacionConjunto;
+import instalaciones.InstalacionIndividual;
+import instalaciones.Modalidad;
+import instalaciones.RegistroIngreso;
+import instalaciones.Reserva;
 import partidos.EstadisticaPartido;
 import partidos.EstadoPartido;
 import partidos.Partido;
 import partidos.PartidoCompetencia;
 import partidos.PartidoInterno;
+import partidos.PartidoPractica;
 import personas.Administrador;
 import personas.Empleado;
 import personas.Entrenador;
@@ -62,6 +79,10 @@ public class Club {
 	private final List<SolicitudCambioTurno> solicitudes;
 	private final List<SugerenciaProducto> sugerencias;
 	private final List<PagoMensualidad> pagos;
+	private final List<Instalacion> instalaciones;
+	private final List<Reserva> reservas;
+	private final List<SesionEntrenamiento> sesiones;
+	private final List<RegistroIngreso> ingresos;
 	private Persona usuarioActual;
 
 	//Constructor
@@ -75,6 +96,10 @@ public class Club {
 		this.solicitudes = new ArrayList<>();
 		this.sugerencias = new ArrayList<>();
 		this.pagos = new ArrayList<>();
+		this.instalaciones = new ArrayList<>();
+		this.reservas = new ArrayList<>();
+		this.sesiones = new ArrayList<>();
+		this.ingresos = new ArrayList<>();
 		this.usuarioActual = null;
 	}
 
@@ -203,7 +228,11 @@ public class Club {
 		for (Competencia c : competencias) {
 			todos.addAll(c.getPartidos());
 		}
-		//Integracion: agregar los partidos de practica de los deportes individuales
+		for (Deporte d : deportes) {
+			if (d instanceof DeporteIndividual) {
+				todos.addAll(((DeporteIndividual) d).getPartidos());
+			}
+		}
 		return todos;
 	}
 
@@ -472,7 +501,8 @@ public class Club {
 		buscarPersona(login).restablecerPassword(nuevaPassword);
 	}
 
-	//Socio: lo retira de sus equipos e impide iniciar sesion. El historial se conserva.
+	//Socio: lo retira de sus equipos y academias, cancela sus reservas y practicas futuras e impide
+	//iniciar sesion. Entrenador: se rechaza si tiene sesiones futuras. El historial se conserva.
 	public void darDeBajaPersona(String login) {
 		Administrador admin = exigirRol(Administrador.class);
 		Persona persona = buscarPersona(login);
@@ -495,9 +525,20 @@ public class Club {
 					equipo.retirar(socio);
 				}
 			}
-			//Integracion etapa 3 (RF-ADM-02): retirarlo de sus academias y cancelar sus reservas y partidos de practica futuros
+			for (DeporteIndividual d : getDeportesIndividuales()) {
+				if (d.getAcademia().estaInscrito(socio)) {
+					d.getAcademia().retirar(socio);
+				}
+			}
+			cancelarActividadesFuturas(socio, null);
 		}
-		//Integracion etapa 3 (RF-ADM-03): rechazar la baja de un entrenador con sesiones de entrenamiento futuras
+		if (persona instanceof Entrenador) {
+			for (SesionEntrenamiento s : sesiones) {
+				if (s.getEntrenador() == persona && s.estaVigente() && !s.haEmpezado()) {
+					throw new IllegalStateException(login + " tiene sesiones de entrenamiento futuras (" + s.getId() + ")");
+				}
+			}
+		}
 		persona.darDeBaja();
 	}
 
@@ -568,7 +609,24 @@ public class Club {
 		if (!tieneEquipos) {
 			sb.append(" (ninguno)");
 		}
-		//Integracion etapa 3 (RF-SOC-01): mostrar academias y nivel de cada una
+		sb.append("\nAcademias:");
+		boolean tieneAcademias = false;
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			InscripcionAcademia i = d.getAcademia().buscarInscripcionActiva(socio);
+			if (i != null) {
+				tieneAcademias = true;
+				sb.append("\n  ").append(d.getNombre()).append(": nivel ").append(i.getNivel())
+						.append(" | ELO ").append(i.getRanking().getPuntaje())
+						.append(" | posicion ").append(d.getAcademia().getPosicion(socio));
+			}
+		}
+		if (!tieneAcademias) {
+			sb.append(" (ninguna)");
+		}
+		RegistroIngreso dentro = ingresoActualDe(socio);
+		if (dentro != null) {
+			sb.append("\nEsta dentro de: ").append(dentro.getInstalacion().getNombre());
+		}
 		YearMonth mes = YearMonth.from(Reloj.hoy());
 		sb.append("\nPuntos de fidelidad: ").append(getCuentaFidelidad(socio).getSaldo());
 		sb.append("\nMensualidad de ").append(mes).append(": ").append(tieneMensualidadPaga(socio, mes) ? "pagada" : "pendiente");
@@ -718,8 +776,944 @@ public class Club {
 		return exigirRol(Empleado.class).getCodigoDescuento();
 	}
 
-	//Integracion etapa 3: aqui van las academias, partidos de practica y sesiones de entrenamiento
-	//(RF-SOC-04 a 13, RF-ENT-09 a 16). Las usan el perfil, la baja de personas y los reportes RF-ADM-17, 19 y 21.
+	// ============================================================
+	// Etapa 3: busquedas de instalaciones, academias, reservas, practicas y sesiones
+	// ============================================================
+
+	public List<DeporteIndividual> getDeportesIndividuales() {
+		List<DeporteIndividual> resultado = new ArrayList<>();
+		for (Deporte d : deportes) {
+			if (d instanceof DeporteIndividual) {
+				resultado.add((DeporteIndividual) d);
+			}
+		}
+		return resultado;
+	}
+
+	public DeporteIndividual buscarDeporteIndividual(String nombre) {
+		Deporte deporte = buscarDeporte(nombre);
+		if (!(deporte instanceof DeporteIndividual)) {
+			throw new IllegalArgumentException(nombre + " no es un deporte individual (no tiene academia)");
+		}
+		return (DeporteIndividual) deporte;
+	}
+
+	public void agregarInstalacion(Instalacion instalacion) {
+		for (Instalacion i : instalaciones) {
+			if (i.getCodigo().equalsIgnoreCase(instalacion.getCodigo())) {
+				throw new IllegalArgumentException("Ya existe una instalacion con codigo " + instalacion.getCodigo());
+			}
+		}
+		instalaciones.add(instalacion);
+	}
+
+	public List<Instalacion> getInstalaciones() {
+		return Collections.unmodifiableList(instalaciones);
+	}
+
+	public Instalacion buscarInstalacion(String codigo) {
+		for (Instalacion i : instalaciones) {
+			if (i.getCodigo().equalsIgnoreCase(codigo)) {
+				return i;
+			}
+		}
+		throw new IllegalArgumentException("La instalacion " + codigo + " no existe");
+	}
+
+	public InstalacionIndividual buscarInstalacionIndividual(String codigo) {
+		Instalacion instalacion = buscarInstalacion(codigo);
+		if (!(instalacion instanceof InstalacionIndividual)) {
+			throw new IllegalArgumentException(codigo + " no es una instalacion de academia");
+		}
+		return (InstalacionIndividual) instalacion;
+	}
+
+	public void agregarReserva(Reserva reserva) {
+		reservas.add(reserva);
+	}
+
+	public List<Reserva> getReservas() {
+		return Collections.unmodifiableList(reservas);
+	}
+
+	public Reserva buscarReserva(String id) {
+		for (Reserva r : reservas) {
+			if (r.getId().equalsIgnoreCase(id)) {
+				return r;
+			}
+		}
+		throw new IllegalArgumentException("La reserva " + id + " no existe");
+	}
+
+	public void agregarSesion(SesionEntrenamiento sesion) {
+		sesiones.add(sesion);
+	}
+
+	public List<SesionEntrenamiento> getSesiones() {
+		return Collections.unmodifiableList(sesiones);
+	}
+
+	public SesionEntrenamiento buscarSesion(String id) {
+		for (SesionEntrenamiento s : sesiones) {
+			if (s.getId().equalsIgnoreCase(id)) {
+				return s;
+			}
+		}
+		throw new IllegalArgumentException("La sesion " + id + " no existe");
+	}
+
+	public void agregarIngreso(RegistroIngreso ingreso) {
+		ingresos.add(ingreso);
+	}
+
+	public List<RegistroIngreso> getIngresos() {
+		return Collections.unmodifiableList(ingresos);
+	}
+
+	public RegistroIngreso ingresoActualDe(Socio socio) {
+		for (RegistroIngreso r : ingresos) {
+			if (r.getSocio() == socio && r.estaAdentro()) {
+				return r;
+			}
+		}
+		return null;
+	}
+
+	public PartidoPractica buscarPartidoPractica(String id) {
+		Partido partido = buscarPartido(id);
+		if (!(partido instanceof PartidoPractica)) {
+			throw new IllegalArgumentException(id + " no es un partido de practica");
+		}
+		return (PartidoPractica) partido;
+	}
+
+	// ---- Cruces de horario: reservas, partidos de practica y sesiones son "actividades"
+
+	public List<Actividad> getActividades() {
+		List<Actividad> actividades = new ArrayList<>(reservas);
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			actividades.addAll(d.getPartidos());
+		}
+		actividades.addAll(sesiones);
+		return actividades;
+	}
+
+	private Actividad buscarOcupacion(Instalacion instalacion, LocalDateTime inicio, LocalDateTime fin, Actividad excluida) {
+		for (Actividad a : getActividades()) {
+			if (a != excluida && a.estaVigente() && a.getInstalacion() == instalacion && a.seCruzaCon(inicio, fin)) {
+				return a;
+			}
+		}
+		return null;
+	}
+
+	private Actividad buscarCompromiso(Persona persona, LocalDateTime inicio, LocalDateTime fin, Actividad excluida) {
+		for (Actividad a : getActividades()) {
+			if (a != excluida && a.estaVigente() && a.involucra(persona) && a.seCruzaCon(inicio, fin)) {
+				return a;
+			}
+		}
+		return null;
+	}
+
+	//Cuantas instalaciones distintas de la disciplina estan en uso en ese horario
+	private int instalacionesEnUso(DeporteIndividual deporte, LocalDateTime inicio, LocalDateTime fin, Actividad excluida) {
+		List<Instalacion> enUso = new ArrayList<>();
+		for (Actividad a : getActividades()) {
+			if (a != excluida && a.estaVigente() && a.getInstalacion().getDeporte() == deporte && a.seCruzaCon(inicio, fin)
+					&& !enUso.contains(a.getInstalacion())) {
+				enUso.add(a.getInstalacion());
+			}
+		}
+		return enUso.size();
+	}
+
+	private void validarInstalacionDisponible(Instalacion instalacion, LocalDateTime inicio, LocalDateTime fin, Actividad excluida) {
+		if (!instalacion.estaActiva()) {
+			throw new IllegalStateException("La instalacion " + instalacion.getCodigo() + " esta desactivada");
+		}
+		Actividad ocupacion = buscarOcupacion(instalacion, inicio, fin, excluida);
+		if (ocupacion != null) {
+			throw new IllegalStateException(instalacion.getNombre() + " esta ocupada en ese horario (" + describir(ocupacion) + ")");
+		}
+		if (instalacion.getDeporte() instanceof DeporteIndividual) {
+			DeporteIndividual d = (DeporteIndividual) instalacion.getDeporte();
+			if (instalacionesEnUso(d, inicio, fin, excluida) >= d.getMaximoSimultaneas()) {
+				throw new IllegalStateException("Cupo agotado: ya hay " + d.getMaximoSimultaneas() + " instalaciones de "
+						+ d.getNombre() + " en uso en ese horario (maximo simultaneo)");
+			}
+		}
+	}
+
+	private void validarSinCompromiso(Persona persona, LocalDateTime inicio, LocalDateTime fin, Actividad excluida) {
+		Actividad compromiso = buscarCompromiso(persona, inicio, fin, excluida);
+		if (compromiso != null) {
+			throw new IllegalStateException(persona.getLogin() + " ya tiene otro compromiso en ese horario ("
+					+ describir(compromiso) + ")");
+		}
+	}
+
+	private static String describir(Actividad a) {
+		if (a instanceof Reserva) {
+			return "reserva " + ((Reserva) a).getId();
+		}
+		if (a instanceof PartidoPractica) {
+			return "partido de practica " + ((PartidoPractica) a).getId();
+		}
+		return "sesion de entrenamiento " + ((SesionEntrenamiento) a).getId();
+	}
+
+	private static void validarFuturo(LocalDateTime inicio) {
+		if (!Reloj.ahora().isBefore(inicio)) {
+			throw new IllegalArgumentException("El horario " + inicio.toLocalDate() + " " + inicio.toLocalTime()
+					+ " ya paso o ya comenzo");
+		}
+	}
+
+	//Conjunto: estar en un equipo del deporte. Individual: estar inscrito en la academia.
+	private boolean estaInscritoEnDeporte(Socio socio, Deporte deporte) {
+		if (deporte instanceof DeporteConjunto) {
+			return ((DeporteConjunto) deporte).getEquipoDe(socio) != null;
+		}
+		return ((DeporteIndividual) deporte).getAcademia().estaInscrito(socio);
+	}
+
+	//Retiro de academia (un deporte) o baja del socio (deporte = null): cancela reservas y practicas futuras
+	private void cancelarActividadesFuturas(Socio socio, DeporteIndividual deporte) {
+		for (Reserva r : reservas) {
+			if (r.getSocio() == socio && r.estaVigente() && Reloj.ahora().isBefore(r.getInicio())
+					&& (deporte == null || r.getInstalacion().getDeporte() == deporte)) {
+				r.cancelarPorSistema();
+			}
+		}
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			if (deporte == null || d == deporte) {
+				for (PartidoPractica p : d.getPartidos()) {
+					if (p.involucra(socio)) {
+						p.cancelarPorSistema();
+					}
+				}
+			}
+		}
+	}
+
+	// ============================================================
+	// Administrador: instalaciones (RF-ADM-06)
+	// ============================================================
+
+	public InstalacionIndividual crearInstalacionIndividual(String codigo, String nombre, String deporte, int capacidad,
+			boolean techada) {
+		exigirRol(Administrador.class);
+		InstalacionIndividual i = new InstalacionIndividual(codigo, nombre, buscarDeporteIndividual(deporte), capacidad, techada);
+		agregarInstalacion(i);
+		return i;
+	}
+
+	public InstalacionConjunto crearInstalacionConjunto(String codigo, String nombre, String deporte, int capacidad) {
+		exigirRol(Administrador.class);
+		InstalacionConjunto i = new InstalacionConjunto(codigo, nombre, buscarDeporteConjunto(deporte), capacidad);
+		agregarInstalacion(i);
+		return i;
+	}
+
+	public void editarInstalacion(String codigo, String nuevoNombre, int nuevaCapacidad) {
+		exigirRol(Administrador.class);
+		buscarInstalacion(codigo).editar(nuevoNombre, nuevaCapacidad);
+	}
+
+	public void desactivarInstalacion(String codigo) {
+		exigirRol(Administrador.class);
+		Instalacion instalacion = buscarInstalacion(codigo);
+		for (Actividad a : getActividades()) {
+			if (a.getInstalacion() == instalacion && a.estaVigente() && Reloj.ahora().isBefore(a.getFin())) {
+				throw new IllegalStateException(instalacion.getNombre() + " tiene actividades futuras (" + describir(a) + ")");
+			}
+		}
+		instalacion.desactivar();
+	}
+
+	// ============================================================
+	// Socio: academias (RF-SOC-04, 05)
+	// ============================================================
+
+	public InscripcionAcademia inscribirseEnAcademia(String deporte, Nivel nivel, int eloInicial) {
+		Socio socio = exigirRol(Socio.class);
+		return buscarDeporteIndividual(deporte).getAcademia().inscribir(socio, nivel, eloInicial);
+	}
+
+	//El ranking historico se conserva; se cancelan sus reservas y partidos de practica futuros del deporte
+	public void retirarseDeAcademia(String deporte) {
+		Socio socio = exigirRol(Socio.class);
+		DeporteIndividual d = buscarDeporteIndividual(deporte);
+		d.getAcademia().retirar(socio);
+		cancelarActividadesFuturas(socio, d);
+	}
+
+	// ============================================================
+	// Socio: instalaciones y reservas (RF-SOC-06 a 09)
+	// ============================================================
+
+	public List<String> consultarDisponibilidad(String deporte, LocalDateTime bloque) {
+		exigirSesion();
+		DeporteIndividual d = buscarDeporteIndividual(deporte);
+		Horario.validarBloque(bloque);
+		LocalDateTime fin = Horario.finDeBloque(bloque);
+		int cupo = d.getMaximoSimultaneas() - instalacionesEnUso(d, bloque, fin, null);
+		List<String> lineas = new ArrayList<>();
+		lineas.add("Cupo restante de " + d.getNombre() + " el " + bloque.toLocalDate() + " a las " + bloque.toLocalTime()
+				+ ": " + cupo + " de " + d.getMaximoSimultaneas() + " instalaciones simultaneas");
+		for (Instalacion i : instalaciones) {
+			if (i.getDeporte() == d && i.estaActiva() && cupo > 0 && buscarOcupacion(i, bloque, fin, null) == null) {
+				lineas.add("Libre: " + i);
+			}
+		}
+		if (lineas.size() == 1) {
+			lineas.add("(no hay instalaciones libres en ese bloque)");
+		}
+		return lineas;
+	}
+
+	public Reserva reservarInstalacion(String deporte, String codigoInstalacion, LocalDateTime bloque, int numeroJugadores,
+			Modalidad modalidad) {
+		Socio socio = exigirRol(Socio.class);
+		DeporteIndividual d = buscarDeporteIndividual(deporte);
+		if (!d.getAcademia().estaInscrito(socio)) {
+			throw new IllegalStateException(socio.getLogin() + " no esta inscrito en la academia de " + d.getNombre());
+		}
+		InstalacionIndividual instalacion = buscarInstalacionIndividual(codigoInstalacion);
+		if (instalacion.getDeporte() != d) {
+			throw new IllegalArgumentException(instalacion.getNombre() + " no es de " + d.getNombre());
+		}
+		Horario.validarBloque(bloque);
+		validarFuturo(bloque);
+		if (modalidad == null || !d.permiteModalidad(modalidad)) {
+			throw new IllegalArgumentException(d.getNombre() + " no se juega en modalidad " + modalidad
+					+ " (modalidades: " + d.getModalidades() + ")");
+		}
+		if (numeroJugadores > instalacion.getCapacidad() || modalidad.getJugadores() > instalacion.getCapacidad()) {
+			throw new IllegalArgumentException("Mas jugadores que la capacidad de " + instalacion.getNombre()
+					+ " (" + instalacion.getCapacidad() + ")");
+		}
+		LocalDateTime fin = Horario.finDeBloque(bloque);
+		validarInstalacionDisponible(instalacion, bloque, fin, null);
+		validarSinCompromiso(socio, bloque, fin, null);
+		Reserva reserva = new Reserva("R" + (reservas.size() + 1), socio, instalacion, bloque, numeroJugadores, modalidad);
+		reservas.add(reserva);
+		return reserva;
+	}
+
+	public void cancelarReserva(String id) {
+		Socio socio = exigirRol(Socio.class);
+		buscarReserva(id).cancelar(socio);
+	}
+
+	//Solo entra si tiene una reserva, partido o convocatoria en curso en esa instalacion
+	public RegistroIngreso registrarIngreso(String codigoInstalacion) {
+		Socio socio = exigirRol(Socio.class);
+		Instalacion instalacion = buscarInstalacion(codigoInstalacion);
+		RegistroIngreso actual = ingresoActualDe(socio);
+		if (actual != null) {
+			throw new IllegalStateException(socio.getLogin() + " ya esta en " + actual.getInstalacion().getNombre());
+		}
+		boolean autorizado = false;
+		for (Actividad a : getActividades()) {
+			if (a.estaVigente() && a.getInstalacion() == instalacion && a.involucra(socio) && a.estaEnCursoEn(Reloj.ahora())) {
+				autorizado = true;
+			}
+		}
+		if (!autorizado) {
+			throw new IllegalStateException(socio.getLogin() + " no tiene reserva, partido ni convocatoria en "
+					+ instalacion.getNombre() + " en este momento");
+		}
+		if (socio.tieneBebidaCaliente() && instalacion instanceof InstalacionIndividual
+				&& ((InstalacionIndividual) instalacion).restringeBebidaCaliente()) {
+			throw new IllegalStateException("No puede entrar a " + instalacion.getNombre() + " con una bebida caliente");
+		}
+		RegistroIngreso ingreso = new RegistroIngreso(socio, instalacion, Reloj.ahora());
+		ingresos.add(ingreso);
+		return ingreso;
+	}
+
+	public void registrarSalida() {
+		Socio socio = exigirRol(Socio.class);
+		RegistroIngreso actual = ingresoActualDe(socio);
+		if (actual == null) {
+			throw new IllegalStateException(socio.getLogin() + " no esta en ninguna instalacion");
+		}
+		actual.registrarSalida(Reloj.ahora());
+	}
+
+	// ============================================================
+	// Socio: partidos de practica (RF-SOC-08, 10, 11)
+	// ============================================================
+
+	//El socio que programa es el primer participante. Con 2 participantes es sencillos y con 4 dobles
+	//(lado A = los dos primeros). Un entrenador puede jugar y en ese caso no se exige nivel compatible.
+	public PartidoPractica programarPartidoPractica(String deporte, String codigoInstalacion, LocalDateTime bloque,
+			List<String> otrosParticipantes) {
+		Socio socio = exigirRol(Socio.class);
+		DeporteIndividual d = buscarDeporteIndividual(deporte);
+		InstalacionIndividual instalacion = buscarInstalacionIndividual(codigoInstalacion);
+		if (instalacion.getDeporte() != d) {
+			throw new IllegalArgumentException(instalacion.getNombre() + " no es de " + d.getNombre());
+		}
+		Horario.validarBloque(bloque);
+		validarFuturo(bloque);
+		List<Persona> participantes = new ArrayList<>();
+		participantes.add(socio);
+		for (String login : otrosParticipantes) {
+			Persona p = buscarPersona(login);
+			if (!(p instanceof Socio) && !(p instanceof Entrenador)) {
+				throw new IllegalArgumentException(login + " no puede jugar partidos de practica");
+			}
+			if (participantes.contains(p)) {
+				throw new IllegalArgumentException(login + " esta repetido en el partido");
+			}
+			participantes.add(p);
+		}
+		Modalidad modalidad = Modalidad.deJugadores(participantes.size());
+		if (!d.permiteModalidad(modalidad)) {
+			throw new IllegalArgumentException(d.getNombre() + " no se juega en modalidad " + modalidad);
+		}
+		if (participantes.size() > instalacion.getCapacidad()) {
+			throw new IllegalArgumentException("Los jugadores (" + participantes.size() + ") superan la capacidad de "
+					+ instalacion.getNombre() + " (" + instalacion.getCapacidad() + ")");
+		}
+		boolean juegaEntrenador = false;
+		List<InscripcionAcademia> inscritos = new ArrayList<>();
+		for (Persona p : participantes) {
+			if (!p.estaActivo()) {
+				throw new IllegalStateException(p.getLogin() + " esta dado de baja");
+			}
+			if (p instanceof Entrenador) {
+				juegaEntrenador = true;
+			} else {
+				InscripcionAcademia i = d.getAcademia().buscarInscripcionActiva((Socio) p);
+				if (i == null) {
+					throw new IllegalStateException(p.getLogin() + " no esta inscrito en la academia de " + d.getNombre());
+				}
+				inscritos.add(i);
+			}
+		}
+		if (!juegaEntrenador) {
+			validarNivelesCompatibles(inscritos);
+		}
+		LocalDateTime fin = Horario.finDeBloque(bloque);
+		for (Persona p : participantes) {
+			validarSinCompromiso(p, bloque, fin, null);
+		}
+		validarInstalacionDisponible(instalacion, bloque, fin, null);
+		PartidoPractica partido = new PartidoPractica(generarIdPartido(), d, instalacion, bloque, socio, participantes);
+		d.agregarPartido(partido);
+		return partido;
+	}
+
+	private static void validarNivelesCompatibles(List<InscripcionAcademia> inscritos) {
+		for (InscripcionAcademia a : inscritos) {
+			for (InscripcionAcademia b : inscritos) {
+				if (!a.getNivel().esCompatibleCon(b.getNivel())) {
+					throw new IllegalArgumentException("Niveles no compatibles: " + a.getSocio().getLogin() + " (" + a.getNivel()
+							+ ") y " + b.getSocio().getLogin() + " (" + b.getNivel() + ")");
+				}
+			}
+		}
+	}
+
+	public void cancelarPartidoPractica(String id) {
+		Socio socio = exigirRol(Socio.class);
+		buscarPartidoPractica(id).cancelar(socio);
+	}
+
+	public String consultarPartidosYRanking() {
+		Socio socio = exigirRol(Socio.class);
+		StringBuilder sb = new StringBuilder("Academias:");
+		boolean tieneAcademias = false;
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			InscripcionAcademia i = d.getAcademia().buscarInscripcion(socio);
+			if (i != null) {
+				tieneAcademias = true;
+				sb.append("\n  ").append(d.getNombre()).append(": nivel ").append(i.getNivel())
+						.append(" | ELO ").append(i.getRanking().getPuntaje());
+				if (i.estaActiva()) {
+					sb.append(" | posicion ").append(d.getAcademia().getPosicion(socio)).append(" de ")
+							.append(d.getAcademia().getRankingActual().size());
+				} else {
+					sb.append(" | RETIRADO (ranking historico)");
+				}
+			}
+		}
+		if (!tieneAcademias) {
+			sb.append(" (ninguna)");
+		}
+		sb.append("\nPartidos de practica:");
+		boolean tienePartidos = false;
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			for (PartidoPractica p : d.getPartidos()) {
+				if (p.involucra(socio)) {
+					tienePartidos = true;
+					sb.append("\n  ").append(p);
+					if (p.getEstado() == EstadoPartido.JUGADO) {
+						sb.append(p.gano(socio) ? " (GANO)" : " (PERDIO)");
+						EstadisticaPartido e = p.getEstadistica(socio.getLogin());
+						if (e != null) {
+							sb.append("\n      ").append(e);
+						}
+					}
+				}
+			}
+		}
+		if (!tienePartidos) {
+			sb.append(" (ninguno)");
+		}
+		return sb.toString();
+	}
+
+	// ============================================================
+	// Socio: desempeno en entrenamiento y calendario (RF-SOC-12, 13)
+	// ============================================================
+
+	public String consultarDesempeno() {
+		Socio socio = exigirRol(Socio.class);
+		StringBuilder sb = new StringBuilder("Sesiones de entrenamiento terminadas:");
+		boolean hay = false;
+		for (SesionEntrenamiento s : sesiones) {
+			RegistroEntrenamiento r = s.buscarRegistro(socio);
+			if (r != null && s.estaVigente() && s.haTerminado()) {
+				hay = true;
+				sb.append("\n  [").append(s.getId()).append("] ").append(s.getInicio().toLocalDate()).append(" ")
+						.append(s.getInstalacion().getNombre()).append(" (").append(s.getEntrenador().getLogin()).append("): ")
+						.append(r.getAsistencia() == null ? "asistencia sin registrar" : r.getAsistencia())
+						.append(r.getNota() == null ? "" : " | nota " + r.getNota())
+						.append(r.getComentario() == null || r.getComentario().isEmpty() ? "" : " | \"" + r.getComentario() + "\"");
+			}
+		}
+		if (!hay) {
+			sb.append(" (ninguna)");
+		}
+		sb.append("\nResumen: ").append(describirAsistencia(contarAsistencia(socio, null, null)));
+		return sb.toString();
+	}
+
+	//Sesiones, reservas, partidos de practica, internos y de competencia futuros, en orden
+	public List<String> consultarCalendario() {
+		Socio socio = exigirRol(Socio.class);
+		Map<String, LocalDateTime> eventos = new LinkedHashMap<>();
+		LocalDateTime ahora = Reloj.ahora();
+		for (Actividad a : getActividades()) {
+			if (a.estaVigente() && a.involucra(socio) && a.getFin().isAfter(ahora)
+					&& !(a instanceof PartidoPractica && ((PartidoPractica) a).getEstado() != EstadoPartido.PROGRAMADO)) {
+				eventos.put(a.getInicio().toLocalDate() + " " + a.getInicio().toLocalTime() + "  " + describirParaCalendario(a), a.getInicio());
+			}
+		}
+		for (Partido p : getTodosLosPartidos()) {
+			if (p.getEstado() == EstadoPartido.PROGRAMADO && !p.getFecha().isBefore(ahora.toLocalDate())
+					&& juegaPartidoDeEquipo(socio, p)) {
+				eventos.put(p.getFecha() + "        " + p, p.getFecha().atStartOfDay());
+			}
+		}
+		List<String> calendario = new ArrayList<>(eventos.keySet());
+		calendario.sort((a, b) -> eventos.get(a).compareTo(eventos.get(b)));
+		return calendario;
+	}
+
+	private static String describirParaCalendario(Actividad a) {
+		if (a instanceof Reserva) {
+			return "Reserva " + a;
+		}
+		if (a instanceof PartidoPractica) {
+			return "Partido de practica " + a;
+		}
+		return "Entrenamiento " + a;
+	}
+
+	private boolean juegaPartidoDeEquipo(Socio socio, Partido partido) {
+		if (partido instanceof PartidoInterno) {
+			PartidoInterno p = (PartidoInterno) partido;
+			return p.getLocal().estaInscrito(socio) || p.getVisitante().estaInscrito(socio);
+		}
+		if (partido instanceof PartidoCompetencia) {
+			PartidoCompetencia p = (PartidoCompetencia) partido;
+			return p.getCompetencia().buscarInscripcion(p.getEquipo()) != null
+					&& p.getCompetencia().buscarInscripcion(p.getEquipo()).estaEnNomina(socio);
+		}
+		return false;
+	}
+
+	// ============================================================
+	// Entrenador: academias y partidos de practica (RF-ENT-09, 10)
+	// ============================================================
+
+	public void asignarNivel(String deporte, String login, Nivel nuevoNivel) {
+		exigirRol(Entrenador.class);
+		DeporteIndividual d = buscarDeporteIndividual(deporte);
+		Socio socio = buscarSocio(login);
+		InscripcionAcademia inscripcion = d.getAcademia().buscarInscripcionActiva(socio);
+		if (inscripcion == null) {
+			throw new IllegalStateException(login + " no esta inscrito en la academia de " + d.getNombre());
+		}
+		if (nuevoNivel == null) {
+			throw new IllegalArgumentException("Debe indicar el nivel");
+		}
+		//No puede dejar inhabilitado un partido de practica ya programado
+		for (PartidoPractica p : d.getPartidos()) {
+			if (p.esFuturoProgramado() && p.involucra(socio)) {
+				boolean juegaEntrenador = false;
+				for (Persona otro : p.getParticipantes()) {
+					juegaEntrenador = juegaEntrenador || otro instanceof Entrenador;
+				}
+				for (Socio otro : p.getAlineados()) {
+					InscripcionAcademia i = d.getAcademia().buscarInscripcionActiva(otro);
+					if (!juegaEntrenador && otro != socio && i != null && !nuevoNivel.esCompatibleCon(i.getNivel())) {
+						throw new IllegalStateException("El cambio a " + nuevoNivel + " inhabilita el partido programado "
+								+ p.getId() + " con " + otro.getLogin() + " (" + i.getNivel() + ")");
+					}
+				}
+			}
+		}
+		inscripcion.cambiarNivel(nuevoNivel);
+	}
+
+	//Marcador en sets (lado A - lado B). Actualiza el ELO de los socios que jugaron.
+	public void registrarResultadoPractica(String idPartido, int setsA, int setsB, List<EstadisticaPartido> estadisticas) {
+		exigirRol(Entrenador.class);
+		PartidoPractica partido = buscarPartidoPractica(idPartido);
+		partido.registrarResultado(setsA, setsB, estadisticas);
+		partido.getDeporte().getAcademia().actualizarRanking(partido);
+	}
+
+	// ============================================================
+	// Entrenador: sesiones de entrenamiento (RF-ENT-11 a 14, 16)
+	// ============================================================
+
+	public SesionEntrenamiento planificarSesion(String codigoInstalacion, LocalDateTime inicio, int duracionMinutos,
+			List<String> convocados) {
+		Entrenador entrenador = exigirRol(Entrenador.class);
+		Instalacion instalacion = buscarInstalacion(codigoInstalacion);
+		List<Socio> socios = buscarSocios(convocados);
+		validarSesion(entrenador, instalacion, inicio, duracionMinutos, socios, null);
+		SesionEntrenamiento sesion = new SesionEntrenamiento("S" + (sesiones.size() + 1), entrenador, instalacion, inicio,
+				duracionMinutos, socios);
+		sesiones.add(sesion);
+		return sesion;
+	}
+
+	public void modificarSesion(String id, String codigoInstalacion, LocalDateTime inicio, int duracionMinutos,
+			List<String> convocados) {
+		Entrenador entrenador = exigirRol(Entrenador.class);
+		SesionEntrenamiento sesion = buscarSesionPropia(entrenador, id);
+		Instalacion instalacion = buscarInstalacion(codigoInstalacion);
+		List<Socio> socios = buscarSocios(convocados);
+		if (sesion.haEmpezado()) {
+			throw new IllegalStateException("La sesion " + id + " ya empezo o termino");
+		}
+		validarSesion(entrenador, instalacion, inicio, duracionMinutos, socios, sesion);
+		sesion.modificar(instalacion, inicio, duracionMinutos, socios);
+	}
+
+	public void cancelarSesion(String id) {
+		Entrenador entrenador = exigirRol(Entrenador.class);
+		buscarSesionPropia(entrenador, id).cancelar();
+	}
+
+	public void registrarAsistencia(String idSesion, String login, Asistencia asistencia) {
+		Entrenador entrenador = exigirRol(Entrenador.class);
+		buscarSesionPropia(entrenador, idSesion).registrarAsistencia(buscarSocio(login), asistencia);
+	}
+
+	public void registrarEvaluacion(String idSesion, String login, int nota, String comentario) {
+		Entrenador entrenador = exigirRol(Entrenador.class);
+		buscarSesionPropia(entrenador, idSesion).evaluar(buscarSocio(login), nota, comentario);
+	}
+
+	private SesionEntrenamiento buscarSesionPropia(Entrenador entrenador, String id) {
+		SesionEntrenamiento sesion = buscarSesion(id);
+		if (sesion.getEntrenador() != entrenador) {
+			throw new IllegalStateException("La sesion " + id + " es de " + sesion.getEntrenador().getLogin());
+		}
+		return sesion;
+	}
+
+	private void validarSesion(Entrenador entrenador, Instalacion instalacion, LocalDateTime inicio, int duracionMinutos,
+			List<Socio> convocados, SesionEntrenamiento excluida) {
+		if (duracionMinutos <= 0) {
+			throw new IllegalArgumentException("La duracion debe ser mayor a cero");
+		}
+		if (inicio == null) {
+			throw new IllegalArgumentException("Debe indicar fecha y hora");
+		}
+		validarFuturo(inicio);
+		LocalDateTime fin = inicio.plusMinutes(duracionMinutos);
+		Horario.validarIntervalo(inicio, fin);
+		if (convocados.isEmpty()) {
+			throw new IllegalArgumentException("La sesion debe tener al menos un convocado");
+		}
+		validarInstalacionDisponible(instalacion, inicio, fin, excluida);
+		Actividad otra = buscarCompromiso(entrenador, inicio, fin, excluida);
+		if (otra != null) {
+			throw new IllegalStateException("Se cruza con otra actividad del entrenador (" + describir(otra) + ")");
+		}
+		List<Socio> vistos = new ArrayList<>();
+		for (Socio s : convocados) {
+			if (vistos.contains(s)) {
+				throw new IllegalArgumentException(s.getLogin() + " esta repetido en la convocatoria");
+			}
+			vistos.add(s);
+			if (!s.estaActivo() || !estaInscritoEnDeporte(s, instalacion.getDeporte())) {
+				throw new IllegalArgumentException(s.getLogin() + " no esta inscrito en " + instalacion.getDeporte().getNombre());
+			}
+			validarSinCompromiso(s, inicio, fin, excluida);
+		}
+	}
+
+	//Sesiones propias, partidos de practica en los que juega y partidos del club programados
+	public List<String> consultarAgenda() {
+		Entrenador entrenador = exigirRol(Entrenador.class);
+		Map<String, LocalDateTime> eventos = new LinkedHashMap<>();
+		LocalDateTime ahora = Reloj.ahora();
+		for (Actividad a : getActividades()) {
+			if (a.estaVigente() && a.involucra(entrenador) && a.getFin().isAfter(ahora)) {
+				eventos.put(a.getInicio().toLocalDate() + " " + a.getInicio().toLocalTime() + "  " + describirParaCalendario(a),
+						a.getInicio());
+			}
+		}
+		for (Partido p : getTodosLosPartidos()) {
+			if (!(p instanceof PartidoPractica) && p.getEstado() == EstadoPartido.PROGRAMADO
+					&& !p.getFecha().isBefore(ahora.toLocalDate())) {
+				eventos.put(p.getFecha() + "        " + p, p.getFecha().atStartOfDay());
+			}
+		}
+		List<String> agenda = new ArrayList<>(eventos.keySet());
+		agenda.sort((a, b) -> eventos.get(a).compareTo(eventos.get(b)));
+		return agenda;
+	}
+
+	// ============================================================
+	// Analiticas de entrenamiento (RF-ENT-15)
+	// ============================================================
+
+	//{convocatorias, asistencias, tardanzas, faltas, suma de notas, cantidad de notas} en sesiones terminadas del periodo
+	private int[] contarAsistencia(Socio socio, LocalDate desde, LocalDate hasta) {
+		int[] c = new int[6];
+		for (SesionEntrenamiento s : sesiones) {
+			RegistroEntrenamiento r = s.buscarRegistro(socio);
+			if (r != null && s.estaVigente() && enPeriodo(s.getInicio().toLocalDate(), desde, hasta)) {
+				c[0]++;
+				if (r.getAsistencia() == Asistencia.ASISTIO) {
+					c[1]++;
+				} else if (r.getAsistencia() == Asistencia.LLEGO_TARDE) {
+					c[2]++;
+				} else if (r.getAsistencia() == Asistencia.FALTO) {
+					c[3]++;
+				}
+				if (r.getNota() != null) {
+					c[4] += r.getNota();
+					c[5]++;
+				}
+			}
+		}
+		return c;
+	}
+
+	private static String describirAsistencia(int[] c) {
+		int registradas = c[1] + c[2] + c[3];
+		String porcentaje = registradas == 0 ? "-" : (100 * (c[1] + c[2]) / registradas) + "%";
+		String nota = c[5] == 0 ? "-" : String.format("%.1f", (double) c[4] / c[5]);
+		return c[0] + " convocatorias | " + c[1] + " asistencias | " + c[2] + " tardanzas | " + c[3] + " faltas | asistencia "
+				+ porcentaje + " | nota promedio " + nota;
+	}
+
+	public String consultarAnaliticasJugador(String login, LocalDate desde, LocalDate hasta) {
+		exigirRol(Entrenador.class);
+		validarPeriodo(desde, hasta);
+		Socio socio = buscarSocio(login);
+		StringBuilder sb = new StringBuilder("Analiticas de " + socio.getNombre() + " del " + desde + " al " + hasta);
+		sb.append("\n  Entrenamiento: ").append(describirAsistencia(contarAsistencia(socio, desde, hasta)));
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			InscripcionAcademia i = d.getAcademia().buscarInscripcion(socio);
+			if (i != null) {
+				int jugados = 0;
+				int ganados = 0;
+				for (PartidoPractica p : d.getPartidos()) {
+					if (p.involucra(socio) && p.getEstado() == EstadoPartido.JUGADO && enPeriodo(p.getFecha(), desde, hasta)) {
+						jugados++;
+						ganados += p.gano(socio) ? 1 : 0;
+					}
+				}
+				sb.append("\n  ").append(d.getNombre()).append(": nivel ").append(i.getNivel()).append(" | ELO ")
+						.append(i.getRanking().getPuntaje()).append(" | practicas jugadas ").append(jugados)
+						.append(" (ganadas ").append(ganados).append(")");
+			}
+		}
+		for (DeporteConjunto d : getDeportesConjunto()) {
+			Equipo e = d.getEquipoDe(socio);
+			if (e != null) {
+				int partidos = 0;
+				int anotaciones = 0;
+				for (Partido p : getTodosLosPartidos()) {
+					EstadisticaPartido est = p.getEstadistica(socio.getLogin());
+					if (p.getDeporte() == d && est != null && enPeriodo(p.getFecha(), desde, hasta)) {
+						partidos++;
+						anotaciones += est.getAnotaciones();
+					}
+				}
+				sb.append("\n  ").append(d.getNombre()).append(" (").append(e.getNombre()).append("): ").append(partidos)
+						.append(" partidos con estadisticas, ").append(anotaciones).append(" anotaciones");
+			}
+		}
+		return sb.toString();
+	}
+
+	//Grupo = un equipo (deporte de conjunto) o una academia (deporte individual, equipo = null)
+	public String consultarAnaliticasGrupo(String deporte, String nombreEquipo, LocalDate desde, LocalDate hasta) {
+		exigirRol(Entrenador.class);
+		validarPeriodo(desde, hasta);
+		Deporte d = buscarDeporte(deporte);
+		List<Socio> miembros;
+		String nombreGrupo;
+		if (d instanceof DeporteConjunto) {
+			if (nombreEquipo == null) {
+				throw new IllegalArgumentException("Para un deporte de conjunto debe indicar el equipo");
+			}
+			Equipo equipo = buscarEquipo(deporte, nombreEquipo);
+			miembros = equipo.getJugadores();
+			nombreGrupo = equipo.getNombre();
+		} else {
+			Academia academia = ((DeporteIndividual) d).getAcademia();
+			miembros = new ArrayList<>();
+			for (InscripcionAcademia i : academia.getRankingActual()) {
+				miembros.add(i.getSocio());
+			}
+			nombreGrupo = academia.getNombre();
+		}
+		StringBuilder sb = new StringBuilder("Analiticas de " + nombreGrupo + " del " + desde + " al " + hasta);
+		int[] total = new int[6];
+		for (Socio s : miembros) {
+			int[] c = contarAsistencia(s, desde, hasta);
+			for (int k = 0; k < total.length; k++) {
+				total[k] += c[k];
+			}
+			sb.append("\n  ").append(s.getLogin()).append(": ").append(describirAsistencia(c));
+		}
+		sb.append("\n  TOTAL: ").append(describirAsistencia(total));
+		return sb.toString();
+	}
+
+	// ============================================================
+	// Administrador: historiales y reportes de la etapa 3 (RF-ADM-15, 17, 19, 21)
+	// ============================================================
+
+	//Incluye las canceladas. Filtros en null = sin filtro. login = socio que reservo.
+	public List<Reserva> historialReservas(String deporte, LocalDate desde, LocalDate hasta, String codigoInstalacion,
+			String login) {
+		exigirRol(Administrador.class);
+		validarFiltros(deporte, desde, hasta, login);
+		if (codigoInstalacion != null) {
+			buscarInstalacion(codigoInstalacion);
+		}
+		List<Reserva> resultado = new ArrayList<>();
+		for (Reserva r : reservas) {
+			if ((deporte == null || r.getInstalacion().getDeporte().getNombre().equalsIgnoreCase(deporte))
+					&& enPeriodo(r.getInicio().toLocalDate(), desde, hasta)
+					&& (codigoInstalacion == null || r.getInstalacion().getCodigo().equalsIgnoreCase(codigoInstalacion))
+					&& (login == null || r.getSocio().getLogin().equals(login))) {
+				resultado.add(r);
+			}
+		}
+		resultado.sort((a, b) -> a.getInicio().compareTo(b.getInicio()));
+		return resultado;
+	}
+
+	//Con asistencia y evaluaciones. login = entrenador responsable o convocado.
+	public List<String> historialSesiones(String deporte, LocalDate desde, LocalDate hasta, String codigoInstalacion,
+			String login) {
+		exigirRol(Administrador.class);
+		validarFiltros(deporte, desde, hasta, login);
+		if (codigoInstalacion != null) {
+			buscarInstalacion(codigoInstalacion);
+		}
+		List<SesionEntrenamiento> filtradas = new ArrayList<>();
+		for (SesionEntrenamiento s : sesiones) {
+			if ((deporte == null || s.getInstalacion().getDeporte().getNombre().equalsIgnoreCase(deporte))
+					&& enPeriodo(s.getInicio().toLocalDate(), desde, hasta)
+					&& (codigoInstalacion == null || s.getInstalacion().getCodigo().equalsIgnoreCase(codigoInstalacion))
+					&& (login == null || s.involucra(buscarPersona(login)))) {
+				filtradas.add(s);
+			}
+		}
+		filtradas.sort((a, b) -> a.getInicio().compareTo(b.getInicio()));
+		List<String> resultado = new ArrayList<>();
+		for (SesionEntrenamiento s : filtradas) {
+			resultado.add(s.generarDetalle());
+		}
+		return resultado;
+	}
+
+	public String reporteAsistencias(LocalDate desde, LocalDate hasta) {
+		exigirRol(Administrador.class);
+		validarPeriodo(desde, hasta);
+		List<Socio> convocados = new ArrayList<>();
+		for (SesionEntrenamiento s : sesiones) {
+			if (s.estaVigente() && enPeriodo(s.getInicio().toLocalDate(), desde, hasta)) {
+				for (Socio socio : s.getConvocados()) {
+					if (!convocados.contains(socio)) {
+						convocados.add(socio);
+					}
+				}
+			}
+		}
+		StringBuilder sb = new StringBuilder("Reporte de asistencias del " + desde + " al " + hasta);
+		if (convocados.isEmpty()) {
+			return sb.append("\n(sin sesiones de entrenamiento en el periodo)").toString();
+		}
+		int[] total = new int[6];
+		for (Socio socio : convocados) {
+			int[] c = contarAsistencia(socio, desde, hasta);
+			for (int k = 0; k < total.length; k++) {
+				total[k] += c[k];
+			}
+			sb.append("\n  ").append(socio.getLogin()).append(": ").append(describirAsistencia(c));
+		}
+		sb.append("\n  TOTAL: ").append(describirAsistencia(total));
+		return sb.toString();
+	}
+
+	public String reporteRankings(LocalDate desde, LocalDate hasta) {
+		exigirRol(Administrador.class);
+		validarPeriodo(desde, hasta);
+		StringBuilder sb = new StringBuilder("Reporte de evolucion de rankings del " + desde + " al " + hasta);
+		for (DeporteIndividual d : getDeportesIndividuales()) {
+			sb.append("\n").append(d.getAcademia().getNombre()).append(":");
+			boolean hay = false;
+			for (InscripcionAcademia i : d.getAcademia().getInscripciones()) {
+				Integer fin = i.getRanking().getPuntajeEn(hasta);
+				if (fin == null) {
+					continue;
+				}
+				List<RegistroRanking> enPeriodo = new ArrayList<>();
+				for (RegistroRanking r : i.getRanking().getHistorial()) {
+					if (enPeriodo(r.getFecha(), desde, hasta)) {
+						enPeriodo.add(r);
+					}
+				}
+				Integer inicio = i.getRanking().getPuntajeEn(desde.minusDays(1));
+				if (inicio == null) {
+					inicio = enPeriodo.get(0).getPuntaje();
+				}
+				hay = true;
+				int variacion = fin - inicio;
+				sb.append("\n  ").append(i.getSocio().getLogin()).append(": inicial ").append(inicio).append(" | final ")
+						.append(fin).append(" | variacion ").append(variacion >= 0 ? "+" : "").append(variacion);
+				for (RegistroRanking r : enPeriodo) {
+					sb.append("\n      ").append(r);
+				}
+			}
+			if (!hay) {
+				sb.append("\n  (sin inscritos en el periodo)");
+			}
+		}
+		return sb.toString();
+	}
+
 
 	// ============================================================
 	// Comercio (RF-GEN-06, RF-SOC-14 a 17, RF-EMP-04 y mensualidades)
@@ -831,7 +1825,11 @@ public class Club {
 		}
 		validarCompra(comprador, venta);
 		if (venta.tieneBebidaCaliente() && comprador instanceof Socio) {
-			//Integracion etapa 3: rechazar si el socio esta en una cancha de padel o mesa de tenis de mesa techada
+			RegistroIngreso dentro = ingresoActualDe((Socio) comprador);
+			if (dentro != null && dentro.getInstalacion() instanceof InstalacionIndividual
+					&& ((InstalacionIndividual) dentro.getInstalacion()).restringeBebidaCaliente()) {
+				throw new IllegalStateException("No se despachan bebidas calientes dentro de " + dentro.getInstalacion().getNombre());
+			}
 			((Socio) comprador).tomarBebidaCaliente();
 		}
 		getCuentaFidelidad(comprador).registrarVenta(venta);
@@ -1039,18 +2037,32 @@ public class Club {
 				lineas.add("  " + linea);
 			}
 		}
-		//Integracion etapa 3: agregar el estado del inventario de instalaciones
+		lineas.add("Instalaciones:");
+		for (Instalacion i : instalaciones) {
+			lineas.add("  " + i);
+		}
 		return lineas;
 	}
 
-	//Al aprobarla, el producto se crea con crearArticulo o crearProductoCafeteria
-	public void aprobarSugerencia(String id) {
+	//Al aprobarla el producto entra al catalogo: categorias "Snack..." o "Bebida..." van a la cafeteria
+	//(bebida caliente si la categoria dice "caliente"); las demas a la tienda, sin existencias
+	public Producto aprobarSugerencia(String id) {
 		exigirRol(Administrador.class);
 		SugerenciaProducto sugerencia = buscarSugerencia(id);
 		if (existeProducto(sugerencia.getNombre())) {
 			throw new IllegalStateException(sugerencia.getNombre() + " ya existe en el catalogo");
 		}
+		String categoria = sugerencia.getCategoria().toLowerCase();
+		Producto producto;
+		if (categoria.startsWith("snack") || categoria.startsWith("bebida")) {
+			producto = new ProductoCafeteria(sugerencia.getNombre(), sugerencia.getPrecioSugerido(),
+					categoria.contains("caliente"), sugerencia.getAlergenos());
+		} else {
+			producto = new ArticuloDeportivo(sugerencia.getNombre(), sugerencia.getCategoria(), sugerencia.getPrecioSugerido());
+		}
 		sugerencia.aprobar();
+		agregarProducto(producto);
+		return producto;
 	}
 
 	public void rechazarSugerencia(String id) {
@@ -1097,8 +2109,7 @@ public class Club {
 	// Administrador: historiales y reportes (RF-ADM-16 a 21)
 	// ============================================================
 
-	//Filtros en null = sin filtro. login: partidos en los que jugo esa persona.
-	//Integracion etapa 3: incluir al entrenador que juega un partido de practica en el filtro por login
+	//Filtros en null = sin filtro. login: partidos en los que jugo esa persona (incluye al entrenador que juega una practica).
 	public List<Partido> historialPartidos(String deporte, LocalDate desde, LocalDate hasta, String login) {
 		exigirRol(Administrador.class);
 		validarFiltros(deporte, desde, hasta, login);
@@ -1112,8 +2123,6 @@ public class Club {
 		resultado.sort((a, b) -> a.getFecha().compareTo(b.getFecha()));
 		return resultado;
 	}
-
-	//Integracion etapa 3 (RF-ADM-17): historial de sesiones de entrenamiento con asistencia y evaluaciones, con filtros
 
 	private void validarFiltros(String deporte, LocalDate desde, LocalDate hasta, String login) {
 		if (deporte != null) {
@@ -1213,11 +2222,8 @@ public class Club {
 		return sb.toString();
 	}
 
-	//Integracion etapa 3 (RF-ADM-19): reporte de asistencias (convocatorias, asistencias, faltas, tardanzas
-	//y porcentaje de cada jugador en las sesiones del periodo), con la misma validacion de periodo
-
 	//Victorias, empates y derrotas de cada equipo del club, y el marcador de cada partido jugado.
-	//Integracion etapa 3: los partidos de practica tambien apareceran en la lista de partidos
+	//Los partidos de practica aparecen en la lista de partidos.
 	public String reporteResultados(LocalDate desde, LocalDate hasta) {
 		exigirRol(Administrador.class);
 		validarPeriodo(desde, hasta);
@@ -1259,9 +2265,6 @@ public class Club {
 			resultado[2]++;
 		}
 	}
-
-	//Integracion etapa 3 (RF-ADM-21): reporte de evolucion de rankings (puntaje inicial y final del periodo,
-	//variacion e historial de cada socio de cada academia), con la misma validacion de periodo
 
 	private static void validarPeriodo(LocalDate desde, LocalDate hasta) {
 		if (desde == null || hasta == null || desde.isAfter(hasta)) {

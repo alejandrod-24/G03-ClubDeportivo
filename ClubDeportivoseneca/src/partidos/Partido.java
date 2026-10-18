@@ -108,6 +108,9 @@ public abstract class Partido {
 		if (estado == EstadoPartido.NO_JUGADO) {
 			throw new IllegalStateException("El partido " + id + " ya fue declarado no jugado");
 		}
+		if (estado == EstadoPartido.CANCELADO) {
+			throw new IllegalStateException("El partido " + id + " fue cancelado");
+		}
 		estado = EstadoPartido.NO_JUGADO;
 	}
 
@@ -183,6 +186,8 @@ public abstract class Partido {
 			return marcadorLocal + " - " + marcadorVisitante;
 		case NO_JUGADO:
 			return "no jugado";
+		case CANCELADO:
+			return "cancelado";
 		default:
 			return "programado";
 		}

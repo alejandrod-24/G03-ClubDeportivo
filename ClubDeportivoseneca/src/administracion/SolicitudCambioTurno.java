@@ -66,7 +66,7 @@ public class SolicitudCambioTurno {
 					nuevaHoraFin);
 
 				simulados.add(turnoSimulado);
-			} else {{}
+			} else {
 				simulados.add(t);
 			}
 		}

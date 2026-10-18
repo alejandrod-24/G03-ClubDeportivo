@@ -13,6 +13,10 @@ import deportes.Categoria;
 import deportes.DeporteConjunto;
 import deportes.DeporteIndividual;
 import deportes.Equipo;
+import deportes.Nivel;
+import instalaciones.InstalacionConjunto;
+import instalaciones.InstalacionIndividual;
+import instalaciones.Modalidad;
 import personas.Administrador;
 import personas.Empleado;
 import personas.Entrenador;
@@ -68,9 +72,12 @@ public class DatosIniciales {
 		club.agregarDeporte(futbol);
 		club.agregarDeporte(baloncesto);
 		club.agregarDeporte(voleibol);
-		club.agregarDeporte(new DeporteIndividual("Tenis"));
-		club.agregarDeporte(new DeporteIndividual("Padel"));
-		club.agregarDeporte(new DeporteIndividual("Tenis de mesa"));
+		DeporteIndividual tenis = new DeporteIndividual("Tenis", 2, List.of(Modalidad.SENCILLOS, Modalidad.DOBLES));
+		DeporteIndividual padel = new DeporteIndividual("Padel", 2, List.of(Modalidad.DOBLES));
+		DeporteIndividual tenisDeMesa = new DeporteIndividual("Tenis de mesa", 2, List.of(Modalidad.SENCILLOS, Modalidad.DOBLES));
+		club.agregarDeporte(tenis);
+		club.agregarDeporte(padel);
+		club.agregarDeporte(tenisDeMesa);
 
 		// ---- Equipos e inscripciones
 		Equipo senecaFC = futbol.crearEquipo("Seneca FC", Categoria.MAYORES, 12);
@@ -109,7 +116,31 @@ public class DatosIniciales {
 		club.agregarCompetencia(Competencia.ascun(ASCUN_BALONCESTO, TEMPORADA, baloncesto, Categoria.MAYORES,
 				List.of("Universidad Nacional", "Universidad de La Sabana", "Universidad EAFIT")));
 
-		//Integracion: socios de ejemplo inscritos en las academias, con su nivel
+		// ---- Instalaciones (3 canchas de tenis pero maximo 2 en uso a la vez)
+		club.agregarInstalacion(new InstalacionIndividual("TEN-1", "Cancha de tenis 1", tenis, 4, false));
+		club.agregarInstalacion(new InstalacionIndividual("TEN-2", "Cancha de tenis 2", tenis, 4, false));
+		club.agregarInstalacion(new InstalacionIndividual("TEN-3", "Cancha de tenis 3", tenis, 2, false));
+		club.agregarInstalacion(new InstalacionIndividual("PAD-1", "Cancha de padel techada", padel, 4, true));
+		club.agregarInstalacion(new InstalacionIndividual("PAD-2", "Cancha de padel exterior", padel, 4, false));
+		club.agregarInstalacion(new InstalacionIndividual("MESA-1", "Mesa de tenis de mesa techada", tenisDeMesa, 4, true));
+		club.agregarInstalacion(new InstalacionIndividual("MESA-2", "Mesa de tenis de mesa exterior", tenisDeMesa, 2, false));
+		club.agregarInstalacion(new InstalacionConjunto("FUT-1", "Cancha de futbol", futbol, 22));
+		club.agregarInstalacion(new InstalacionConjunto("BAL-1", "Coliseo de baloncesto", baloncesto, 12));
+		club.agregarInstalacion(new InstalacionConjunto("VOL-1", "Cancha de voleibol", voleibol, 12));
+
+		// ---- Academias: socios inscritos con su nivel y ELO inicial
+		academia(club, tenis, "diego", Nivel.AVANZADO, 1650);
+		academia(club, tenis, "valentina", Nivel.INTERMEDIO, 1500);
+		academia(club, tenis, "luis", Nivel.INTERMEDIO, 1480);
+		academia(club, tenis, "ana", Nivel.PRINCIPIANTE, 1300);
+		academia(club, tenis, "camila", Nivel.PRINCIPIANTE, 1320);
+		academia(club, padel, "mateo", Nivel.INTERMEDIO, 1450);
+		academia(club, padel, "maria", Nivel.INTERMEDIO, 1500);
+		academia(club, padel, "jorge", Nivel.AVANZADO, 1600);
+		academia(club, padel, "juliana", Nivel.AVANZADO, 1550);
+		academia(club, tenisDeMesa, "sofia", Nivel.PRINCIPIANTE, 1200);
+		academia(club, tenisDeMesa, "martin", Nivel.PRINCIPIANTE, 1250);
+		academia(club, tenisDeMesa, "tomas", Nivel.INTERMEDIO, 1400);
 
 		// ---- Tienda (existencias en Tienda y Bodega) y cafeteria
 		agregarArticulo(club, "Balon de futbol", "Balones", 80000, 10, 20);
@@ -147,6 +178,10 @@ public class DatosIniciales {
 		for (String[] j : jugadores) {
 			equipo.inscribir(club.buscarSocio(j[0]), j[1], Integer.parseInt(j[2]));
 		}
+	}
+
+	private static void academia(Club club, DeporteIndividual deporte, String login, Nivel nivel, int elo) {
+		deporte.getAcademia().inscribir(club.buscarSocio(login), nivel, elo);
 	}
 
 	private static void agregarArticulo(Club club, String nombre, String categoria, long precio, int enTienda, int enBodega) {

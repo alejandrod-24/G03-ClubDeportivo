@@ -52,5 +52,9 @@ public abstract class Producto {
 		if (texto == null || texto.isBlank()) {
 			throw new IllegalArgumentException(campo + " no puede estar vacio");
 		}
+		//';' y ',' se reservan como separadores en los archivos
+		if (texto.contains(";") || texto.contains(",")) {
+			throw new IllegalArgumentException(campo + " no puede contener ';' ni ','");
+		}
 	}
 }

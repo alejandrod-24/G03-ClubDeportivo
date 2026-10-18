@@ -2,6 +2,7 @@ package persistencia;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,15 +12,21 @@ import competencias.FormatoCompetencia;
 import competencias.InscripcionCompetencia;
 import deportes.Categoria;
 import deportes.DeporteConjunto;
+import deportes.DeporteIndividual;
 import global.Club;
 import partidos.EstadisticaBaloncesto;
 import partidos.EstadisticaFutbol;
+import partidos.EstadisticaPadel;
+import partidos.EstadisticaTenis;
+import partidos.EstadisticaTenisDeMesa;
 import partidos.EstadisticaPartido;
 import partidos.EstadisticaVoleibol;
 import partidos.EstadoPartido;
 import partidos.Partido;
 import partidos.PartidoCompetencia;
 import partidos.PartidoInterno;
+import partidos.PartidoPractica;
+import personas.Persona;
 import personas.Socio;
 
 /**
@@ -28,6 +35,7 @@ import personas.Socio;
  * competencias.txt:               nombre;entidad;temporada;deporte;categoria;formato;nominaMinima;amarillasParaSuspension;finalizada;instituciones
  * inscripciones_competencia.txt:  competencia;temporada;equipo;nomina
  * partidos_competencia.txt:       id;competencia;temporada;equipo;rival;escenario;fecha;fase;estado;marcadorClub;marcadorRival;alineacion
+ * partidos_practica.txt:          id;deporte;instalacion;inicio;programadoPor;participantes;estado;setsA;setsB
  * estadisticas.txt:               idPartido;deporte;login;valores...
  */
 public class PersistenciaPartidos {
@@ -36,6 +44,7 @@ public class PersistenciaPartidos {
 	public static final String COMPETENCIAS = "competencias.txt";
 	public static final String INSCRIPCIONES = "inscripciones_competencia.txt";
 	public static final String PARTIDOS_COMPETENCIA = "partidos_competencia.txt";
+	public static final String PRACTICAS = "partidos_practica.txt";
 	public static final String ESTADISTICAS = "estadisticas.txt";
 
 	public void cargar(Club club, File carpeta) {
@@ -76,6 +85,19 @@ public class PersistenciaPartidos {
 			comp.agregarPartidoGuardado(p);
 		});
 
+		ArchivoTexto.procesar(new File(carpeta, PRACTICAS), c -> {
+			ArchivoTexto.exigirCampos(c, 9);
+			DeporteIndividual deporte = club.buscarDeporteIndividual(c[1]);
+			List<Persona> participantes = new ArrayList<>();
+			for (String login : ArchivoTexto.separarLista(c[5])) {
+				participantes.add(club.buscarPersona(login));
+			}
+			PartidoPractica p = new PartidoPractica(c[0], deporte, club.buscarInstalacionIndividual(c[2]),
+					LocalDateTime.parse(c[3]), club.buscarSocio(c[4]), participantes);
+			p.restaurarEstado(EstadoPartido.valueOf(c[6]), Integer.parseInt(c[7]), Integer.parseInt(c[8]));
+			deporte.agregarPartido(p);
+		});
+
 		ArchivoTexto.procesar(new File(carpeta, ESTADISTICAS), c -> {
 			ArchivoTexto.exigirCampos(c, 3);
 			club.buscarPartido(c[0]).restaurarEstadistica(crearEstadistica(c));
@@ -96,6 +118,18 @@ public class PersistenciaPartidos {
 		}
 		if (deporte.equals(EstadisticaVoleibol.DEPORTE)) {
 			return new EstadisticaVoleibol(login, Integer.parseInt(c[3]), Integer.parseInt(c[4]));
+		}
+		if (deporte.equals(EstadisticaTenisDeMesa.DEPORTE)) {
+			return new EstadisticaTenisDeMesa(login, Integer.parseInt(c[3]), Integer.parseInt(c[4]));
+		}
+		ArchivoTexto.exigirCampos(c, 7);
+		if (deporte.equals(EstadisticaTenis.DEPORTE)) {
+			return new EstadisticaTenis(login, Integer.parseInt(c[3]), Integer.parseInt(c[4]), Integer.parseInt(c[5]),
+					Integer.parseInt(c[6]));
+		}
+		if (deporte.equals(EstadisticaPadel.DEPORTE)) {
+			return new EstadisticaPadel(login, Integer.parseInt(c[3]), Integer.parseInt(c[4]), Integer.parseInt(c[5]),
+					Integer.parseInt(c[6]));
 		}
 		throw new IllegalArgumentException("estadistica de deporte desconocido: " + deporte);
 	}
@@ -122,6 +156,7 @@ public class PersistenciaPartidos {
 		List<String> inscripciones = new ArrayList<>();
 		List<String> partidosCompetencia = new ArrayList<>();
 		List<String> estadisticas = new ArrayList<>();
+		List<String> practicas = new ArrayList<>();
 
 		for (DeporteConjunto d : club.getDeportesConjunto()) {
 			for (PartidoInterno p : d.getPartidos()) {
@@ -144,6 +179,17 @@ public class PersistenciaPartidos {
 						p.getEstado(), p.getMarcadorLocal(), p.getMarcadorVisitante(), logins(p.getAlineados())));
 			}
 		}
+		for (DeporteIndividual d : club.getDeportesIndividuales()) {
+			for (PartidoPractica p : d.getPartidos()) {
+				List<String> participantes = new ArrayList<>();
+				for (Persona persona : p.getParticipantes()) {
+					participantes.add(persona.getLogin());
+				}
+				practicas.add(ArchivoTexto.unir(p.getId(), d.getNombre(), p.getInstalacion().getCodigo(), p.getInicio(),
+						p.getProgramadoPor().getLogin(), ArchivoTexto.unirLista(participantes), p.getEstado(),
+						p.getMarcadorLocal(), p.getMarcadorVisitante()));
+			}
+		}
 		for (Partido p : club.getTodosLosPartidos()) {
 			for (EstadisticaPartido e : p.getEstadisticas()) {
 				estadisticas.add(p.getId() + ArchivoTexto.SEPARADOR + e.getNombreDeporte() + ArchivoTexto.SEPARADOR
@@ -155,6 +201,7 @@ public class PersistenciaPartidos {
 		ArchivoTexto.escribir(new File(carpeta, COMPETENCIAS), "nombre;entidad;temporada;deporte;categoria;formato;nominaMinima;amarillasParaSuspension;finalizada;instituciones", competencias);
 		ArchivoTexto.escribir(new File(carpeta, INSCRIPCIONES), "competencia;temporada;equipo;nomina", inscripciones);
 		ArchivoTexto.escribir(new File(carpeta, PARTIDOS_COMPETENCIA), "id;competencia;temporada;equipo;rival;escenario;fecha;fase;estado;marcadorClub;marcadorRival;alineacion", partidosCompetencia);
-		ArchivoTexto.escribir(new File(carpeta, ESTADISTICAS), "idPartido;deporte;login;valores (Futbol: goles;asistencias;amarillas;roja | Baloncesto: puntos;rebotes | Voleibol: aces;bloqueos)", estadisticas);
+		ArchivoTexto.escribir(new File(carpeta, PRACTICAS), "id;deporte;instalacion;inicio;programadoPor;participantes;estado;setsA;setsB", practicas);
+		ArchivoTexto.escribir(new File(carpeta, ESTADISTICAS), "idPartido;deporte;login;valores (Futbol: goles;asistencias;amarillas;roja | Baloncesto: puntos;rebotes | Voleibol: aces;bloqueos | Tenis y Padel: sets;games;aces;errores | Tenis de mesa: sets;puntos)", estadisticas);
 	}
 }

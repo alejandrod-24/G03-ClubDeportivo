@@ -1,1 +1,1 @@
-# idPartido;deporte;login;valores (Futbol: goles;asistencias;amarillas;roja | Baloncesto: puntos;rebotes | Voleibol: aces;bloqueos)
+# idPartido;deporte;login;valores (Futbol: goles;asistencias;amarillas;roja | Baloncesto: puntos;rebotes | Voleibol: aces;bloqueos | Tenis y Padel: sets;games;aces;errores | Tenis de mesa: sets;puntos)

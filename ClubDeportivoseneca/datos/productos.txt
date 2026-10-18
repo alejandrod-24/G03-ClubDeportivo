@@ -1,0 +1,12 @@
+# TIENDA;nombre;precio;activo;categoria | CAFETERIA;nombre;precio;activo;bebidaCaliente;alergenos
+TIENDA;Balon de futbol;80000;true;Balones
+TIENDA;Raqueta de tenis;350000;true;Raquetas
+TIENDA;Tubo de pelotas;25000;true;Pelotas
+TIENDA;Uniforme Seneca;120000;true;Uniformes
+TIENDA;Malla de voleibol;200000;true;Mallas
+CAFETERIA;Cafe;5000;true;true;
+CAFETERIA;Chocolate caliente;6000;true;true;Lacteos
+CAFETERIA;Jugo natural;7000;true;false;
+CAFETERIA;Agua;3000;true;false;
+CAFETERIA;Galletas de mani;4000;true;false;Mani,Gluten
+CAFETERIA;Sandwich;12000;true;false;Gluten,Lacteos

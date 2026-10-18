@@ -1,0 +1,1 @@
+# id;TIENDA;fecha;comprador;puntosRedimidos;codigo;porcentajeDescuento | id;CAFETERIA;fecha;comprador;puntosRedimidos;porcentajePropina

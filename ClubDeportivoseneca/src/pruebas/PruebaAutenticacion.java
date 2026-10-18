@@ -59,17 +59,19 @@ public class PruebaAutenticacion {
 		Prueba.debeRechazar("cambiar contrasena sin sesion iniciada", () -> club.cambiarPassword("nueva123", "otra123"));
 
 		Prueba.seccion("Guardar y recuperar el estado (RF-GEN-04)");
-		Persistencia persistencia = new Persistencia();
-		Prueba.debeFuncionar("guardar el estado en la carpeta datos/", () -> persistencia.salvar(club));
-		File[] archivos = new File(Persistencia.CARPETA_POR_DEFECTO).listFiles((dir, nombre) -> nombre.endsWith(".txt"));
+		//Carpeta propia dentro de datos/ para no sobrescribir el estado de la aplicacion de consola
+		File carpeta = new File(Persistencia.CARPETA_POR_DEFECTO, "_prueba_autenticacion");
+		Persistencia persistencia = new Persistencia(carpeta.getPath());
+		Prueba.debeFuncionar("guardar el estado en " + carpeta.getPath(), () -> persistencia.salvar(club));
+		File[] archivos = carpeta.listFiles((dir, nombre) -> nombre.endsWith(".txt"));
 		Prueba.info("Archivos generados: " + (archivos == null ? 0 : archivos.length));
 		if (archivos != null) {
 			for (File f : archivos) {
-				Prueba.info("  datos/" + f.getName());
+				Prueba.info("  " + f.getName());
 			}
 		}
 		Club[] recargado = new Club[1];
-		Prueba.debeFuncionar("cargar el estado desde datos/ en un club nuevo", () -> recargado[0] = persistencia.cargar());
+		Prueba.debeFuncionar("cargar el estado guardado en un club nuevo", () -> recargado[0] = persistencia.cargar());
 		if (recargado[0] != null) {
 			Club otro = recargado[0];
 			Prueba.verificar("se recuperan las " + club.getPersonas().size() + " personas",
@@ -79,9 +81,17 @@ public class PruebaAutenticacion {
 			Prueba.verificar("se recuperan los " + club.getProductos().size() + " productos y los "
 					+ club.getTurnos().size() + " turnos", otro.getProductos().size() == club.getProductos().size()
 							&& otro.getTurnos().size() == club.getTurnos().size());
+			Prueba.verificar("se recuperan las " + club.getInstalaciones().size() + " instalaciones",
+					otro.getInstalaciones().size() == club.getInstalaciones().size());
 			Prueba.debeFuncionar("la contrasena cambiada de ana se conserva tras recargar",
 					() -> otro.iniciarSesion("ana", "nueva123"));
 		}
+		if (archivos != null) {
+			for (File f : archivos) {
+				f.delete();
+			}
+		}
+		carpeta.delete();
 		Prueba.debeRechazar("cargar desde una carpeta inexistente",
 				() -> new Persistencia("datos/no_existe").cargar());
 

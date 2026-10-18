@@ -1,9 +1,11 @@
 package pruebas;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import global.Club;
 import global.DatosIniciales;
+import instalaciones.Modalidad;
 import personas.Administrador;
 import personas.Entrenador;
 
@@ -85,5 +87,20 @@ public class PruebaGestionUsuarios {
 		Prueba.debeRechazar("dar de baja a luis, que esta en la nomina de una competencia en curso",
 				() -> club.darDeBajaPersona("luis"));
 		Prueba.debeRechazar("el administrador no puede darse de baja a si mismo", () -> club.darDeBajaPersona("admin"));
+
+		Prueba.seccion("Bajas que afectan academias, reservas y sesiones (RF-ADM-02, 03)");
+		LocalDate lunes = LocalDate.of(2026, 10, 19);
+		club.iniciarSesion("diego", "1234");
+		String reserva = club.reservarInstalacion("Tenis", "TEN-1", lunes.atTime(9, 0), 2, Modalidad.SENCILLOS).getId();
+		club.iniciarSesion("carlos", "carlos123");
+		club.planificarSesion("TEN-2", lunes.plusDays(1).atTime(9, 0), 60, List.of("valentina"));
+		club.iniciarSesion("admin", "admin123");
+		Prueba.debeFuncionar("dar de baja a diego, inscrito en la academia de tenis con una reserva futura",
+				() -> club.darDeBajaPersona("diego"));
+		Prueba.verificar("su reserva futura quedo cancelada", club.buscarReserva(reserva).estaCancelada());
+		Prueba.verificar("ya no esta inscrito en la academia de tenis",
+				!club.buscarDeporteIndividual("Tenis").getAcademia().estaInscrito(club.buscarSocio("diego")));
+		Prueba.debeRechazar("dar de baja a carlos, que tiene una sesion de entrenamiento futura",
+				() -> club.darDeBajaPersona("carlos"));
 	}
 }

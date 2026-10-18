@@ -1,0 +1,1 @@
+# id;deporte;instalacion;inicio;programadoPor;participantes;estado;setsA;setsB

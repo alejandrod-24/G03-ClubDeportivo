@@ -44,6 +44,9 @@ public class SugerenciaProducto {
 		if (texto == null || texto.isBlank()) {
 			throw new IllegalArgumentException(campo + " es obligatorio");
 		}
+		if (texto.contains(";") || texto.contains(",")) {
+			throw new IllegalArgumentException(campo + " no puede contener ';' ni ','");
+		}
 	}
 
 	//Getters

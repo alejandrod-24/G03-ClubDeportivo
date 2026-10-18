@@ -1,15 +1,17 @@
 package pruebas;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import deportes.Categoria;
 import global.Club;
 import global.DatosIniciales;
 import global.Reloj;
+import instalaciones.Modalidad;
 
 /**
- * 14. Creacion y baja de equipos y creacion de competencias.
- * RF-ADM-04, 05, 07. (La gestion de instalaciones RF-ADM-06 llega en la etapa 3.)
+ * 14. Creacion y baja de equipos, gestion de instalaciones y creacion de competencias.
+ * RF-ADM-04 a 07
  */
 public class PruebaGestionDeportiva {
 
@@ -66,5 +68,30 @@ public class PruebaGestionDeportiva {
 
 		Prueba.info("Competencias del club:");
 		Prueba.lista(club.getCompetencias());
+
+		Prueba.seccion("Gestionar instalaciones (RF-ADM-06)");
+		Prueba.debeFuncionar("crear la cancha de tenis TEN-4 (capacidad 2)", () ->
+				Prueba.info("Creada: " + club.crearInstalacionIndividual("TEN-4", "Cancha de tenis 4", "Tenis", 2, false)));
+		Prueba.debeFuncionar("crear la cancha de futbol FUT-2 (capacidad 22)", () ->
+				Prueba.info("Creada: " + club.crearInstalacionConjunto("FUT-2", "Cancha de futbol 2", "Futbol", 22)));
+		Prueba.debeRechazar("codigo que ya existe (TEN-1)", () -> club.crearInstalacionIndividual("TEN-1", "Otra", "Tenis", 2, false));
+		Prueba.debeRechazar("capacidad invalida para padel (siempre 4)", () -> club.crearInstalacionIndividual("PAD-3", "Padel 3", "Padel", 2, false));
+		Prueba.debeRechazar("capacidad invalida para tenis (3)", () -> club.crearInstalacionIndividual("TEN-5", "Tenis 5", "Tenis", 3, false));
+		Prueba.debeRechazar("cancha de futbol donde no caben dos equipos (10)", () -> club.crearInstalacionConjunto("FUT-3", "Mini", "Futbol", 10));
+		Prueba.debeRechazar("deporte inexistente", () -> club.crearInstalacionIndividual("SQ-1", "Squash", "Squash", 2, false));
+		Prueba.debeFuncionar("editar TEN-4: nuevo nombre y capacidad 4", () -> club.editarInstalacion("TEN-4", "Cancha de tenis 4 (renovada)", 4));
+		Prueba.debeRechazar("editar TEN-4 con capacidad 5", () -> club.editarInstalacion("TEN-4", "Cancha de tenis 4", 5));
+		club.iniciarSesion("valentina", "1234");
+		club.reservarInstalacion("Tenis", "TEN-4", LocalDate.of(2026, 10, 19).atTime(9, 0), 2, Modalidad.SENCILLOS);
+		club.iniciarSesion("admin", "admin123");
+		Prueba.debeRechazar("desactivar TEN-4, que tiene una reserva futura", () -> club.desactivarInstalacion("TEN-4"));
+		Prueba.debeFuncionar("desactivar MESA-2", () -> club.desactivarInstalacion("MESA-2"));
+		Prueba.debeRechazar("desactivarla otra vez", () -> club.desactivarInstalacion("MESA-2"));
+		club.iniciarSesion("sofia", "1234");
+		Prueba.debeRechazar("no se puede reservar una instalacion desactivada", () -> club.reservarInstalacion("Tenis de mesa", "MESA-2",
+				LocalDate.of(2026, 10, 19).atTime(9, 0), 2, Modalidad.SENCILLOS));
+		club.iniciarSesion("admin", "admin123");
+		Prueba.info("Inventario de instalaciones:");
+		Prueba.lista(club.getInstalaciones());
 	}
 }

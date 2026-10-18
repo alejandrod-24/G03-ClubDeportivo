@@ -1,0 +1,1 @@
+# id;socio;instalacion;inicio;numeroJugadores;modalidad;cancelada

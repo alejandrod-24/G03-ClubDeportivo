@@ -1,0 +1,13 @@
+# deporte;loginSocio;fecha;puntaje;motivo
+Tenis;diego;2026-10-18;1650;Inscripcion
+Tenis;valentina;2026-10-18;1500;Inscripcion
+Tenis;luis;2026-10-18;1480;Inscripcion
+Tenis;ana;2026-10-18;1300;Inscripcion
+Tenis;camila;2026-10-18;1320;Inscripcion
+Padel;mateo;2026-10-18;1450;Inscripcion
+Padel;maria;2026-10-18;1500;Inscripcion
+Padel;jorge;2026-10-18;1600;Inscripcion
+Padel;juliana;2026-10-18;1550;Inscripcion
+Tenis de mesa;sofia;2026-10-18;1200;Inscripcion
+Tenis de mesa;martin;2026-10-18;1250;Inscripcion
+Tenis de mesa;tomas;2026-10-18;1400;Inscripcion

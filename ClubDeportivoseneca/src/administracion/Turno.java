@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import global.Horario;
 import personas.Empleado;
 import personas.Entrenador;
 import personas.Fisioterapeuta;
@@ -12,8 +13,8 @@ import personas.Fisioterapeuta;
 // horario supuesto: lunes a sabado de 8:00 a 20:00. 
 public class Turno {
 
-	public static final LocalTime APERTURA = LocalTime.of(8, 0);
-	public static final LocalTime CIERRE = LocalTime.of(20, 0);
+	public static final LocalTime APERTURA = Horario.APERTURA;
+	public static final LocalTime CIERRE = Horario.CIERRE;
 	public static final int MINIMO_ENTRENADORES = 2;
 	public static final int MINIMO_FISIOTERAPEUTAS = 1;
 
