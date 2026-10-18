@@ -1,0 +1,36 @@
+@startuml
+' Club Deportivo Séneca - Secuencia 6: inscripcion en competencia (RF-ENT-06) y nomina (RF-ENT-07)
+title Secuencia 6 - Inscripcion en competencia y nomina
+hide footbox
+skinparam shadowing false
+
+actor Entrenador as U
+participant ":MenuConsola" as M
+participant ":Club" as C
+participant "competencia:Competencia" as CO
+participant "equipo:Equipo" as E
+participant ":InscripcionCompetencia" as IC
+
+== Inscripcion ==
+U -> M : inscribir equipo (competencia, temporada, equipo)
+M -> C : inscribirEquipoEnCompetencia(...)
+C -> CO : inscribirEquipo(equipo)
+activate CO
+CO -> E : getDeporte(), getCategoria(), getJugadores()
+alt otro deporte o categoria, ya inscrito\no menos jugadores que la nomina minima
+  CO --> M : excepcion
+else
+  CO -> IC ** : new InscripcionCompetencia(this, equipo)
+end
+deactivate CO
+
+== Nomina ==
+U -> M : definir nomina (logins)
+M -> C : definirNomina(...)
+C -> CO : definirNomina(equipo, socios)
+activate CO
+CO -> CO : validar tamano y que cada socio\nsea del equipo, activo y de la categoria
+CO -> IC : setNomina(socios)
+deactivate CO
+note right of IC : solo la nomina puede jugar\nlos partidos oficiales
+@enduml
