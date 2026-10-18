@@ -1,0 +1,213 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: deportes
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: deportes
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package deportes {
+  class Academia {
+    + {static} ELO_MINIMO : int = 100
+    + {static} ELO_MAXIMO : int = 3000
+    + {static} FACTOR_K : int = 32
+    + {static} ELO_ENTRENADOR : int = 1600
+    - deporte : DeporteIndividual {readOnly}
+    - inscripciones : List<InscripcionAcademia> {readOnly}
+    ~ Academia(deporte : DeporteIndividual)
+    + getDeporte() : DeporteIndividual
+    + getNombre() : String
+    + getInscripciones() : List<InscripcionAcademia>
+    + buscarInscripcion(socio : Socio) : InscripcionAcademia
+    + buscarInscripcionActiva(socio : Socio) : InscripcionAcademia
+    + estaInscrito(socio : Socio) : boolean
+    + inscribir(socio : Socio, nivel : Nivel, puntajeInicial : int) : InscripcionAcademia
+    + agregarInscripcionGuardada(socio : Socio, nivel : Nivel, activa : boolean) : InscripcionAcademia
+    + retirar(socio : Socio) : void
+    + actualizarRanking(partido : PartidoPractica) : void
+    - registrarCambio(partido : PartidoPractica, lado : List<Persona>, cambio : int, gano : boolean) : void
+    - promedio(lado : List<Persona>) : double
+    + getRankingActual() : List<InscripcionAcademia>
+    + getPosicion(socio : Socio) : int
+  }
+  enum Categoria {
+    SUB13
+    SUB15
+    SUB17
+    MAYORES
+  }
+  abstract class Deporte {
+    # nombre : String {readOnly}
+    # Deporte(nombre : String)
+    - validarNombre(nombre : String) : void
+    + getNombre() : String
+  }
+  class DeporteConjunto {
+    - minimoJugadores : int {readOnly}
+    - permiteEmpate : boolean {readOnly}
+    - posiciones : List<String> {readOnly}
+    - equipos : ArrayList<Equipo> {readOnly}
+    - partidos : ArrayList<PartidoInterno> {readOnly}
+    + DeporteConjunto(nombre : String, minimoJugadores : int, permiteEmpate : boolean, posiciones : List<String>)
+    + getMinimoJugadores() : int
+    + permiteEmpate() : boolean
+    + getPosiciones() : List<String>
+    + getEquipos() : List<Equipo>
+    + getPartidos() : List<PartidoInterno>
+    + crearEquipo(nombre : String, categoria : Categoria, cupoMaximo : int) : Equipo
+    + buscarEquipo(nombre : String) : Equipo
+    + tienePosicion(posicion : String) : boolean
+    + getEquipoDe(socio : Socio) : Equipo
+    + programarPartido(id : String, local : Equipo, visitante : Equipo, fecha : LocalDate) : PartidoInterno
+    + agregarPartidoGuardado(partido : PartidoInterno) : void
+    + getPartidosDe(equipo : Equipo) : List<PartidoInterno>
+    + tienePartidosProgramados(equipo : Equipo) : boolean
+  }
+  class DeporteIndividual {
+    - maximoSimultaneas : int {readOnly}
+    - modalidades : List<Modalidad> {readOnly}
+    - academia : Academia {readOnly}
+    - partidos : List<PartidoPractica> {readOnly}
+    + DeporteIndividual(nombre : String, maximoSimultaneas : int, modalidades : List<Modalidad>)
+    + DeporteIndividual(nombre : String)
+    + getMaximoSimultaneas() : int
+    + getModalidades() : List<Modalidad>
+    + permiteModalidad(modalidad : Modalidad) : boolean
+    + esCapacidadValida(capacidad : int) : boolean
+    + getAcademia() : Academia
+    + getPartidos() : List<PartidoPractica>
+    + agregarPartido(partido : PartidoPractica) : void
+  }
+  class Equipo {
+    - deporte : DeporteConjunto {readOnly}
+    - nombre : String {readOnly}
+    - categoria : Categoria
+    - cupoMaximo : int {readOnly}
+    - activo : boolean
+    - inscripciones : List<InscripcionEquipo> {readOnly}
+    ~ Equipo(deporte : DeporteConjunto, nombre : String, categoria : Categoria, cupoMaximo : int)
+    - validarNombre(nombre : String) : void
+    - validarCategoria(categoria : Categoria) : void
+    - validarCupoMaximo(cupoMaximo : int) : void
+    + getDeporte() : DeporteConjunto
+    + getNombre() : String
+    + getCategoria() : Categoria
+    + getCupoMaximo() : int
+    + getCuposDisponibles() : int
+    + estaActivo() : boolean
+    + getInscripciones() : List<InscripcionEquipo>
+    + getJugadores() : List<Socio>
+    + buscarInscripcion(socio : Socio) : InscripcionEquipo
+    + estaInscrito(socio : Socio) : boolean
+    + inscribir(socio : Socio, posicion : String, numeroCamiseta : int) : void
+    + agregarInscripcionGuardada(socio : Socio, posicion : String, numeroCamiseta : int) : void
+    + retirar(socio : Socio) : void
+    + cambiarCategoria(nueva : Categoria) : void
+    + darDeBaja() : void
+  }
+  class InscripcionAcademia {
+    - socio : Socio {readOnly}
+    - academia : Academia {readOnly}
+    - nivel : Nivel
+    - activa : boolean
+    - ranking : Ranking {readOnly}
+    ~ InscripcionAcademia(socio : Socio, academia : Academia, nivel : Nivel)
+    + getSocio() : Socio
+    + getAcademia() : Academia
+    + getNivel() : Nivel
+    + estaActiva() : boolean
+    + getRanking() : Ranking
+    + cambiarNivel(nuevo : Nivel) : void
+    ~ retirar() : void
+    ~ reactivar(nivel : Nivel, puntajeInicial : int, fecha : LocalDate) : void
+    + restaurarEstado(activa : boolean) : void
+  }
+  class InscripcionEquipo {
+    - socio : Socio {readOnly}
+    - equipo : Equipo {readOnly}
+    - posicion : String {readOnly}
+    - numeroCamiseta : int {readOnly}
+    ~ InscripcionEquipo(socio : Socio, equipo : Equipo, posicion : String, numeroCamiseta : int)
+    + getSocio() : Socio
+    + getEquipo() : Equipo
+    + getPosicion() : String
+    + getNumeroCamiseta() : int
+  }
+  enum Nivel {
+    PRINCIPIANTE
+    INTERMEDIO
+    AVANZADO
+    + esCompatibleCon(otro : Nivel) : boolean
+  }
+  class Ranking {
+    - historial : List<RegistroRanking> {readOnly}
+    + Ranking()
+    + registrar(fecha : LocalDate, puntaje : int, motivo : String) : void
+    + getPuntaje() : int
+    + getHistorial() : List<RegistroRanking>
+    + getPuntajeEn(fecha : LocalDate) : Integer
+  }
+  class RegistroRanking {
+    - fecha : LocalDate {readOnly}
+    - puntaje : int {readOnly}
+    - motivo : String {readOnly}
+    + RegistroRanking(fecha : LocalDate, puntaje : int, motivo : String)
+    + getFecha() : LocalDate
+    + getPuntaje() : int
+    + getMotivo() : String
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+enum Modalidad <<externa>>
+class PartidoInterno <<externa>>
+class PartidoPractica <<externa>>
+class Socio <<externa>>
+
+Deporte <|-- DeporteConjunto
+Deporte <|-- DeporteIndividual
+DeporteConjunto "1" <--> "0..*" Equipo
+Equipo --> Categoria
+Equipo "1" *-- "0..*" InscripcionEquipo
+InscripcionEquipo "0..*" --> "1" Socio
+DeporteIndividual "1" *-- "1" Academia
+DeporteIndividual --> "1..*" Modalidad : modalidades
+Academia "1" *-- "0..*" InscripcionAcademia
+InscripcionAcademia "0..*" --> "1" Socio
+InscripcionAcademia --> Nivel
+InscripcionAcademia "1" *-- "1" Ranking
+Ranking "1" *-- "0..*" RegistroRanking
+DeporteConjunto "1" <--> "0..*" PartidoInterno
+DeporteIndividual "1" <--> "0..*" PartidoPractica
+
+note right of Equipo
+  Clave: deporte + nombre.
+  Solo se crea con DeporteConjunto.crearEquipo
+  (constructor de paquete).
+end note
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml

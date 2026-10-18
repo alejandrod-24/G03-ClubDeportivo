@@ -1,0 +1,256 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: comercio y administración
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: comercio y administración
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package comercio {
+  class ArticuloDeportivo {
+    + {static} TIENDA : String = "Tienda"
+    + {static} EXISTENCIA_MINIMA : int = 3
+    - categoria : String {readOnly}
+    - existencias : Map<String, Integer> {readOnly}
+    + ArticuloDeportivo(nombre : String, categoria : String, precio : long)
+    + getCategoria() : String
+    + getExistencias() : Map<String, Integer>
+    + getExistencia(ubicacion : String) : int
+    + hayExistencia(cantidad : int) : boolean
+    + reabastecer(cantidad : int) : void
+    + mover(origen : String, destino : String, cantidad : int) : void
+    + descontar(cantidad : int) : void
+    - {static} validarCantidad(cantidad : int) : void
+    + restaurarExistencia(ubicacion : String, cantidad : int) : void
+  }
+  class CuentaFidelidad {
+    - titular : Persona {readOnly}
+    - ventas : List<Venta> {readOnly}
+    + CuentaFidelidad(titular : Persona)
+    + getTitular() : Persona
+    + getVentas() : List<Venta>
+    + registrarVenta(venta : Venta) : void
+    + getSaldo() : long
+    + getMovimientos() : List<String>
+  }
+  class DetalleVenta {
+    - producto : Producto {readOnly}
+    - cantidad : int {readOnly}
+    - precioUnitario : long {readOnly}
+    ~ DetalleVenta(producto : Producto, cantidad : int, precioUnitario : long)
+    + getProducto() : Producto
+    + getCantidad() : int
+    + getPrecioUnitario() : long
+    + getValor() : long
+  }
+  abstract class Producto {
+    # nombre : String {readOnly}
+    # precio : long
+    # activo : boolean
+    # Producto(nombre : String, precio : long)
+    + getNombre() : String
+    + getPrecio() : long
+    + estaActivo() : boolean
+    + cambiarPrecio(nuevoPrecio : long) : void
+    + desactivar() : void
+    - {static} validarPrecio(precio : long) : void
+    # {static} validarTexto(texto : String, campo : String) : void
+  }
+  class ProductoCafeteria {
+    - bebidaCaliente : boolean {readOnly}
+    - alergenos : List<String> {readOnly}
+    + ProductoCafeteria(nombre : String, precio : long, bebidaCaliente : boolean, alergenos : List<String>)
+    + esBebidaCaliente() : boolean
+    + getAlergenos() : List<String>
+  }
+  abstract class Venta {
+    + {static} PORCENTAJE_PUNTOS : int = 2
+    # id : String {readOnly}
+    # fecha : LocalDate {readOnly}
+    # comprador : Persona {readOnly}
+    # puntosRedimidos : long {readOnly}
+    # detalles : List<DetalleVenta> {readOnly}
+    # Venta(id : String, fecha : LocalDate, comprador : Persona, puntosRedimidos : long)
+    + getId() : String
+    + getFecha() : LocalDate
+    + getComprador() : Persona
+    + getPuntosRedimidos() : long
+    + getDetalles() : List<DetalleVenta>
+    + {abstract} getRubro() : String
+    + {abstract} getNombreImpuesto() : String
+    + agregarDetalle(producto : Producto, cantidad : int) : void
+    + agregarDetalleGuardado(producto : Producto, cantidad : int, precioUnitario : long) : void
+    + getSubtotal() : long
+    + getDescuento() : long
+    + getBase() : long
+    + {abstract} getImpuesto() : long
+    + getPropina() : long
+    + getTotal() : long
+    + getPuntosGenerados() : long
+    # {static} porcentaje(valor : long, porcentaje : int) : long
+    + generarDesglose() : String
+  }
+  class VentaCafeteria {
+    + {static} IMPUESTO_CONSUMO : int = 8
+    + {static} PROPINA_SUGERIDA : int = 10
+    - porcentajePropina : int {readOnly}
+    + VentaCafeteria(id : String, fecha : LocalDate, comprador : Persona, puntosRedimidos : long, porcentajePropina : int)
+    + getPorcentajePropina() : int
+    + tieneBebidaCaliente() : boolean
+    + getRubro() : String
+    + getNombreImpuesto() : String
+    + getImpuesto() : long
+    + getPropina() : long
+  }
+  class VentaTienda {
+    + {static} IVA : int = 19
+    + {static} DESCUENTO_EMPLEADO : int = 15
+    + {static} DESCUENTO_CODIGO : int = 8
+    - codigoDescuento : String {readOnly}
+    - porcentajeDescuento : int {readOnly}
+    + VentaTienda(id : String, fecha : LocalDate, comprador : Persona, codigoDescuento : String, porcentajeDescuento : int, puntosRedimidos : long)
+    + getCodigoDescuento() : String
+    + getPorcentajeDescuento() : int
+    + getRubro() : String
+    + getNombreImpuesto() : String
+    + getDescuento() : long
+    + getImpuesto() : long
+  }
+}
+package administracion {
+  enum EstadoSolicitud {
+    PENDIENTE
+    APROBADA
+    RECHAZADA
+  }
+  class PagoMensualidad {
+    + {static} VALOR : long = 150000
+    - id : String {readOnly}
+    - socio : Socio {readOnly}
+    - periodo : YearMonth {readOnly}
+    - fecha : LocalDate {readOnly}
+    - monto : long {readOnly}
+    + PagoMensualidad(id : String, socio : Socio, periodo : YearMonth, fecha : LocalDate, monto : long)
+    + getId() : String
+    + getSocio() : Socio
+    + getPeriodo() : YearMonth
+    + getFecha() : LocalDate
+    + getMonto() : long
+  }
+  class SolicitudCambioTurno {
+    - id : String {readOnly}
+    - turno : Turno {readOnly}
+    - nuevaHoraInicio : LocalTime {readOnly}
+    - nuevaHoraFin : LocalTime {readOnly}
+    - estado : EstadoSolicitud
+    + SolicitudCambioTurno(id : String, turno : Turno, nuevaHoraInicio : LocalTime, nuevaHoraFin : LocalTime)
+    + getId() : String
+    + getTurno() : Turno
+    + getEmpleado() : Empleado
+    + getNuevaHoraInicio() : LocalTime
+    + getNuevaHoraFin() : LocalTime
+    + getEstado() : EstadoSolicitud
+    + aprobar(turnosDelClub : List<Turno>) : void
+    + rechazar() : void
+    - validarPendiente() : void
+    + restaurarEstado(estado : EstadoSolicitud) : void
+  }
+  class SugerenciaProducto {
+    - id : String {readOnly}
+    - empleado : Empleado {readOnly}
+    - nombre : String {readOnly}
+    - categoria : String {readOnly}
+    - precioSugerido : long {readOnly}
+    - alergenos : List<String> {readOnly}
+    - estado : EstadoSolicitud
+    + SugerenciaProducto(id : String, empleado : Empleado, nombre : String, categoria : String, precioSugerido : long, alergenos : List<String>)
+    - {static} validarTexto(texto : String, campo : String) : void
+    + getId() : String
+    + getEmpleado() : Empleado
+    + getNombre() : String
+    + getCategoria() : String
+    + getPrecioSugerido() : long
+    + getAlergenos() : List<String>
+    + getEstado() : EstadoSolicitud
+    + aprobar() : void
+    + rechazar() : void
+    - validarPendiente() : void
+    + restaurarEstado(estado : EstadoSolicitud) : void
+  }
+  enum TipoPeriodo {
+    DIARIO
+    SEMANAL
+    MENSUAL
+    + inicioDe(fecha : LocalDate) : LocalDate
+    + describir(inicio : LocalDate) : String
+  }
+  class Turno {
+    + {static} APERTURA : LocalTime
+    + {static} CIERRE : LocalTime
+    + {static} MINIMO_ENTRENADORES : int = 2
+    + {static} MINIMO_FISIOTERAPEUTAS : int = 1
+    - id : String {readOnly}
+    - empleado : Empleado {readOnly}
+    - dia : DayOfWeek {readOnly}
+    - horaInicio : LocalTime
+    - horaFin : LocalTime
+    + Turno(id : String, empleado : Empleado, dia : DayOfWeek, horaInicio : LocalTime, horaFin : LocalTime)
+    + getId() : String
+    + getEmpleado() : Empleado
+    + getDia() : DayOfWeek
+    + getHoraInicio() : LocalTime
+    + getHoraFin() : LocalTime
+    + {static} validarHorario(dia : DayOfWeek, inicio : LocalTime, fin : LocalTime) : void
+    + seCruzaCon(otroDia : DayOfWeek, inicio : LocalTime, fin : LocalTime) : boolean
+    ~ cambiarHorario(inicio : LocalTime, fin : LocalTime) : void
+    + {static} buscarFranjaSinCobertura(turnos : List<Turno>, dia : DayOfWeek) : String
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+abstract class Empleado <<externa>>
+abstract class Persona <<externa>>
+class Socio <<externa>>
+
+Producto <|-- ArticuloDeportivo
+Producto <|-- ProductoCafeteria
+Venta <|-- VentaTienda
+Venta <|-- VentaCafeteria
+Venta "1" *-- "1..*" DetalleVenta
+DetalleVenta "0..*" --> "1" Producto
+Venta "0..*" --> "1" Persona : comprador
+CuentaFidelidad "0..1" --> "1" Persona : titular
+CuentaFidelidad "1" --> "0..*" Venta
+Turno "0..*" --> "1" Empleado
+SolicitudCambioTurno "0..*" --> "1" Turno
+SolicitudCambioTurno --> EstadoSolicitud
+SugerenciaProducto "0..*" --> "1" Empleado
+SugerenciaProducto --> EstadoSolicitud
+PagoMensualidad "0..*" --> "1" Socio
+
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml
