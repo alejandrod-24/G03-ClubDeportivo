@@ -1,44 +1,22 @@
 @startuml
-' Club Deportivo Séneca - Secuencia 3: reserva de instalacion (RF-SOC-07) e ingreso (RF-SOC-09)
-title Secuencia 3 - Reserva de instalacion e ingreso
+title Reserva e ingreso a una instalacion
 hide footbox
-skinparam shadowing false
 
-actor Socio as U
-participant ":MenuConsola" as M
-participant ":Club" as C
-participant "academia:Academia" as AC
-participant "instalacion:InstalacionIndividual" as I
-participant ":Reserva" as R
-participant ":RegistroIngreso" as RI
+actor Socio
+participant Club
+participant Academia
+participant InstalacionIndividual
+participant Reserva
+participant RegistroIngreso
 
-== Reserva ==
-U -> M : reservar (deporte, instalacion, bloque, jugadores, modalidad)
-M -> C : reservarInstalacion(...)
-activate C
-C -> AC : estaInscrito(socio)
-C -> I : getCapacidad()
-C -> C : validarInstalacionDisponible(...)
-note right of C : libre en ese bloque y sin superar\nel maximo simultaneo de la disciplina
-alt alguna validacion falla
-  C --> M : excepcion
-else
-  C -> R ** : new Reserva(...)
-  C --> M : reserva
-end
-deactivate C
+Socio -> Club : reservarInstalacion(deporte, codigo, bloque, jugadores, modalidad)
+Club -> Academia : estaInscrito(socio)
+Club -> InstalacionIndividual : getCapacidad()
+Club -> Reserva : new Reserva()
+Club --> Socio : reserva
 
-== Ingreso ==
-U -> M : registrar ingreso (instalacion)
-M -> C : registrarIngreso(codigo)
-activate C
-C -> C : buscar actividad en curso del socio\n(reserva, partido o sesion)
-C -> I : restringeBebidaCaliente()
-alt sin actividad en curso o con bebida caliente\nen padel / tenis de mesa techada
-  C --> M : excepcion
-else
-  C -> RI ** : new RegistroIngreso(socio, instalacion, ahora)
-  C --> M : ingreso
-end
-deactivate C
+Socio -> Club : registrarIngreso(codigo)
+Club -> InstalacionIndividual : restringeBebidaCaliente()
+Club -> RegistroIngreso : new RegistroIngreso()
+Club --> Socio : ingreso
 @enduml

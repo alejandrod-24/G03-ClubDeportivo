@@ -1,31 +1,20 @@
 @startuml
-' Club Deportivo Séneca - Secuencia 4: aprobar cambio de turno (RF-ADM-14)
-title Secuencia 4 - Aprobacion de cambio de turno
+title Aprobar cambio de turno
 hide footbox
-skinparam shadowing false
 
-actor Administrador as U
-participant ":MenuConsola" as M
-participant ":Club" as C
-participant "solicitud:SolicitudCambioTurno" as SC
-participant "<<static>>\nTurno" as TT
-participant "turno:Turno" as T
+actor Administrador
+participant Club
+participant SolicitudCambioTurno
+participant Turno
 
-U -> M : aprobar solicitud (id)
-M -> C : aprobarSolicitudCambioTurno(id)
-activate C
-C -> SC : aprobar(turnos)
-activate SC
-SC -> SC : copia de los turnos con el horario nuevo
-SC -> TT : buscarFranjaSinCobertura(simulados, dia)
-TT --> SC : franja sin cobertura o null
-alt falta cobertura (2 entrenadores y 1 fisioterapeuta)
-  SC --> M : excepcion (la solicitud sigue pendiente)
-else cobertura completa
-  SC -> T : cambiarHorario(inicio, fin)
-  SC -> SC : estado = APROBADA
+Administrador -> Club : aprobarSolicitudCambioTurno(id)
+Club -> SolicitudCambioTurno : aprobar(turnos)
+SolicitudCambioTurno -> Turno : buscarFranjaSinCobertura(turnosConCambio, dia)
+Turno --> SolicitudCambioTurno : franja o null
+alt hay franja sin cobertura
+  SolicitudCambioTurno --> Club : error
+else
+  SolicitudCambioTurno -> Turno : cambiarHorario(inicio, fin)
 end
-deactivate SC
-deactivate C
-M --> U : resultado
+Club --> Administrador : resultado
 @enduml

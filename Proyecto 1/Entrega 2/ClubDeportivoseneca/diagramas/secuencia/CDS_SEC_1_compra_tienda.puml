@@ -1,34 +1,20 @@
 @startuml
-' Club Deportivo Séneca - Secuencia 1: compra en la tienda (RF-SOC-14 / RF-EMP-04)
-title Secuencia 1 - Compra en la tienda
+title Compra en la tienda
 hide footbox
-skinparam shadowing false
 
-actor "Socio / Empleado" as U
-participant ":MenuConsola" as M
-participant ":Club" as C
-participant ":VentaTienda" as V
-participant "articulo:ArticuloDeportivo" as A
-participant "cuenta:CuentaFidelidad" as CF
+actor Socio
+participant Club
+participant VentaTienda
+participant ArticuloDeportivo
+participant CuentaFidelidad
 
-U -> M : comprar (articulos, codigo, puntos)
-M -> C : comprarEnTienda(articulos, codigo, puntos)
-activate C
-C -> C : definir descuento\n(empleado 15%, codigo 8% o puntos; no acumulables)
-C -> V ** : new VentaTienda(...)
-loop por cada articulo
-  C -> V : agregarDetalle(articulo, cantidad)
-  C -> A : hayExistencia(cantidad)
+Socio -> Club : comprarEnTienda(articulos, codigo, puntos)
+Club -> VentaTienda : new VentaTienda(descuento)
+loop cada articulo
+  Club -> VentaTienda : agregarDetalle(articulo, cantidad)
+  Club -> ArticuloDeportivo : hayExistencia(cantidad)
 end
-alt sin existencias o puntos insuficientes
-  C --> M : excepcion
-else compra valida
-  C -> A : descontar(cantidad)
-  C -> CF : registrarVenta(venta)
-  C --> M : venta
-end
-deactivate C
-M -> V : generarDesglose()
-note right of V : subtotal - descuento - puntos\n+ IVA 19% = total\npuntos generados = 2%
-M --> U : desglose
+Club -> ArticuloDeportivo : descontar(cantidad)
+Club -> CuentaFidelidad : registrarVenta(venta)
+Club --> Socio : venta (total con IVA)
 @enduml

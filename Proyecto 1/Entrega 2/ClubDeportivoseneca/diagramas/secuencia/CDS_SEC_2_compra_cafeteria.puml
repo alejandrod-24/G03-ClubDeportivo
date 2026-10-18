@@ -1,36 +1,24 @@
 @startuml
-' Club Deportivo Séneca - Secuencia 2: compra en la cafeteria (RF-SOC-15)
-title Secuencia 2 - Compra en la cafeteria
+title Compra en la cafeteria
 hide footbox
-skinparam shadowing false
 
-actor Socio as U
-participant ":MenuConsola" as M
-participant ":Club" as C
-participant ":VentaCafeteria" as V
-participant "instalacion:InstalacionIndividual" as I
-participant "socio:Socio" as S
+actor Socio
+participant Club
+participant VentaCafeteria
+participant InstalacionIndividual
 
-U -> M : comprar (productos)
-M -> C : consultarAlergenos(productos)
-C --> M : alergenos
-M --> U : muestra alergenos y pide confirmacion
-U -> M : acepta, propina, puntos
-M -> C : comprarEnCafeteria(productos, puntos, propina, acepta)
-activate C
-C -> V ** : new VentaCafeteria(...)
-C -> V : agregarDetalle(producto, cantidad)
-opt incluye bebida caliente
-  C -> C : ingresoActualDe(socio)
-  C -> I : restringeBebidaCaliente()
-  alt esta en padel o tenis de mesa techada
-    C --> M : excepcion "No se despachan bebidas calientes"
-  else
-    C -> S : tomarBebidaCaliente()
-  end
+Socio -> Club : consultarAlergenos(productos)
+Club --> Socio : alergenos
+Socio -> Club : comprarEnCafeteria(productos, puntos, propina, acepta)
+Club -> VentaCafeteria : new VentaCafeteria()
+Club -> VentaCafeteria : agregarDetalle(producto, cantidad)
+opt tiene bebida caliente
+  Club -> InstalacionIndividual : restringeBebidaCaliente()
+  InstalacionIndividual --> Club : true / false
 end
-C -> C : registrar venta y puntos (2%)
-C --> M : venta
-deactivate C
-M --> U : desglose (impuesto 8% + propina)
+alt socio dentro de padel o tenis de mesa techada
+  Club --> Socio : error
+else
+  Club --> Socio : venta
+end
 @enduml

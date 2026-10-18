@@ -1,29 +1,18 @@
 @startuml
-' Club Deportivo Séneca - Secuencia 5: resultado de partido de practica y ranking ELO (RF-ENT-10)
-title Secuencia 5 - Resultado de practica y ranking ELO
+title Resultado de partido de practica
 hide footbox
-skinparam shadowing false
 
-actor Entrenador as U
-participant ":MenuConsola" as M
-participant ":Club" as C
-participant "partido:PartidoPractica" as P
-participant "academia:Academia" as A
-participant "ranking:Ranking" as R
+actor Entrenador
+participant Club
+participant PartidoPractica
+participant Academia
+participant Ranking
 
-U -> M : registrar resultado (id, setsA, setsB)
-M -> C : registrarResultadoPractica(id, setsA, setsB, estadisticas)
-activate C
-C -> P : registrarResultado(setsA, setsB, estadisticas)
-note right of P : valida que este programado, que ya empezo,\nque no haya empate y que las estadisticas\ncoincidan con el marcador
-P --> C
-C -> A : actualizarRanking(partido)
-activate A
-A -> A : calcular cambio ELO\n(promedio de cada lado, K = 32)
-loop por cada jugador
-  A -> R : registrar(fecha, nuevoPuntaje, motivo)
+Entrenador -> Club : registrarResultadoPractica(id, setsA, setsB, estadisticas)
+Club -> PartidoPractica : registrarResultado(setsA, setsB, estadisticas)
+Club -> Academia : actualizarRanking(partido)
+loop cada jugador
+  Academia -> Ranking : registrar(fecha, puntaje, motivo)
 end
-deactivate A
-deactivate C
-M --> U : "Registrado y ELO actualizado"
+Club --> Entrenador : resultado registrado
 @enduml
