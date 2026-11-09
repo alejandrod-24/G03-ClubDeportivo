@@ -1,0 +1,210 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: instalaciones y entrenamiento
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: instalaciones y entrenamiento
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package instalaciones {
+  interface Actividad {
+    + {abstract} getInicio() : LocalDateTime
+    + {abstract} getFin() : LocalDateTime
+    + {abstract} getInstalacion() : Instalacion
+    + {abstract} estaVigente() : boolean
+    + {abstract} involucra(persona : Persona) : boolean
+    + seCruzaCon(inicio : LocalDateTime, fin : LocalDateTime) : boolean
+    + estaEnCursoEn(momento : LocalDateTime) : boolean
+  }
+  abstract class Instalacion {
+    # codigo : String {readOnly}
+    # nombre : String
+    # deporte : Deporte {readOnly}
+    # capacidad : int
+    # activa : boolean
+    # Instalacion(codigo : String, nombre : String, deporte : Deporte, capacidad : int)
+    + getCodigo() : String
+    + getNombre() : String
+    + getDeporte() : Deporte
+    + getCapacidad() : int
+    + estaActiva() : boolean
+    + editar(nuevoNombre : String, nuevaCapacidad : int) : void
+    + desactivar() : void
+    # {abstract} esCapacidadValida(capacidad : int) : boolean
+    - {static} validarTexto(texto : String, campo : String) : void
+    - validarDeporte(deporte : Deporte) : void
+    - validarCapacidad(capacidad : int) : void
+  }
+  class InstalacionConjunto {
+    + InstalacionConjunto(codigo : String, nombre : String, deporte : DeporteConjunto, capacidad : int)
+    # esCapacidadValida(capacidad : int) : boolean
+  }
+  class InstalacionIndividual {
+    - techada : boolean {readOnly}
+    + InstalacionIndividual(codigo : String, nombre : String, deporte : DeporteIndividual, capacidad : int, techada : boolean)
+    + estaTechada() : boolean
+    + getDeporte() : DeporteIndividual
+    # esCapacidadValida(capacidad : int) : boolean
+    + restringeBebidaCaliente() : boolean
+  }
+  enum Modalidad {
+    SENCILLOS
+    DOBLES
+    - jugadores : int {readOnly}
+    - Modalidad(jugadores : int)
+    + getJugadores() : int
+    + {static} deJugadores(jugadores : int) : Modalidad
+  }
+  class RegistroIngreso {
+    - socio : Socio {readOnly}
+    - instalacion : Instalacion {readOnly}
+    - entrada : LocalDateTime {readOnly}
+    - salida : LocalDateTime
+    + RegistroIngreso(socio : Socio, instalacion : Instalacion, entrada : LocalDateTime)
+    + getSocio() : Socio
+    + getInstalacion() : Instalacion
+    + getEntrada() : LocalDateTime
+    + getSalida() : LocalDateTime
+    + estaAdentro() : boolean
+    + registrarSalida(momento : LocalDateTime) : void
+  }
+  class Reserva {
+    - id : String {readOnly}
+    - socio : Socio {readOnly}
+    - instalacion : InstalacionIndividual {readOnly}
+    - inicio : LocalDateTime {readOnly}
+    - numeroJugadores : int {readOnly}
+    - modalidad : Modalidad {readOnly}
+    - cancelada : boolean
+    + Reserva(id : String, socio : Socio, instalacion : InstalacionIndividual, inicio : LocalDateTime, numeroJugadores : int, modalidad : Modalidad)
+    + getId() : String
+    + getSocio() : Socio
+    + getInstalacion() : InstalacionIndividual
+    + getInicio() : LocalDateTime
+    + getFin() : LocalDateTime
+    + getNumeroJugadores() : int
+    + getModalidad() : Modalidad
+    + estaCancelada() : boolean
+    + estaVigente() : boolean
+    + involucra(persona : Persona) : boolean
+    + cancelar(quien : Socio) : void
+    + cancelarPorSistema() : void
+    + restaurarCancelada(cancelada : boolean) : void
+  }
+}
+package entrenamiento {
+  enum Asistencia {
+    ASISTIO
+    LLEGO_TARDE
+    FALTO
+    + asistio() : boolean
+  }
+  class RegistroEntrenamiento {
+    - socio : Socio {readOnly}
+    - asistencia : Asistencia
+    - nota : Integer
+    - comentario : String
+    ~ RegistroEntrenamiento(socio : Socio)
+    + getSocio() : Socio
+    + getAsistencia() : Asistencia
+    + getNota() : Integer
+    + getComentario() : String
+    ~ setAsistencia(asistencia : Asistencia) : void
+    ~ evaluar(nota : int, comentario : String) : void
+    + restaurar(asistencia : Asistencia, nota : Integer, comentario : String) : void
+  }
+  class SesionEntrenamiento {
+    - id : String {readOnly}
+    - entrenador : Entrenador {readOnly}
+    - instalacion : Instalacion
+    - inicio : LocalDateTime
+    - duracionMinutos : int
+    - registros : List<RegistroEntrenamiento> {readOnly}
+    - cancelada : boolean
+    + SesionEntrenamiento(id : String, entrenador : Entrenador, instalacion : Instalacion, inicio : LocalDateTime, duracionMinutos : int, convocados : List<Socio>)
+    - cambiarDatos(instalacion : Instalacion, inicio : LocalDateTime, duracionMinutos : int, convocados : List<Socio>) : void
+    + getId() : String
+    + getEntrenador() : Entrenador
+    + getInstalacion() : Instalacion
+    + getInicio() : LocalDateTime
+    + getFin() : LocalDateTime
+    + getDuracionMinutos() : int
+    + estaCancelada() : boolean
+    + getRegistros() : List<RegistroEntrenamiento>
+    + getConvocados() : List<Socio>
+    + buscarRegistro(socio : Socio) : RegistroEntrenamiento
+    + haEmpezado() : boolean
+    + haTerminado() : boolean
+    + estaVigente() : boolean
+    + involucra(persona : Persona) : boolean
+    - validarModificable() : void
+    + modificar(instalacion : Instalacion, inicio : LocalDateTime, duracionMinutos : int, convocados : List<Socio>) : void
+    + cancelar() : void
+    + registrarAsistencia(socio : Socio, asistencia : Asistencia) : void
+    + evaluar(socio : Socio, nota : int, comentario : String) : void
+    - registroParaCerrar(socio : Socio) : RegistroEntrenamiento
+    + restaurarCancelada(cancelada : boolean) : void
+    + generarDetalle() : String
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+abstract class Deporte <<externa>>
+class Entrenador <<externa>>
+class PartidoPractica <<externa>>
+class Socio <<externa>>
+
+Instalacion <|-- InstalacionIndividual
+Instalacion <|-- InstalacionConjunto
+Instalacion "0..*" --> "1" Deporte
+Actividad <|.. Reserva
+Actividad <|.. PartidoPractica
+Actividad <|.. SesionEntrenamiento
+Actividad ..> Instalacion
+Reserva "0..*" --> "1" Socio
+Reserva "0..*" --> "1" InstalacionIndividual
+Reserva --> Modalidad
+RegistroIngreso "0..*" --> "1" Socio
+RegistroIngreso "0..*" --> "1" Instalacion
+SesionEntrenamiento "0..*" --> "1" Entrenador
+SesionEntrenamiento "0..*" --> "1" Instalacion
+SesionEntrenamiento "1" *-- "0..*" RegistroEntrenamiento
+RegistroEntrenamiento "0..*" --> "1" Socio
+RegistroEntrenamiento --> Asistencia
+
+note right of Instalacion
+  Clave: codigo (p. ej. TEN-1).
+  El cupo de la p.3 es de uso simultáneo:
+  DeporteIndividual.maximoSimultaneas.
+end note
+note left of Actividad
+  Reserva, PartidoPractica y SesionEntrenamiento
+  ocupan una instalación en un horario.
+  Club revisa los cruces sin importar el tipo.
+end note
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml

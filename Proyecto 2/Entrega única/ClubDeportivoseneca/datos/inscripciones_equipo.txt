@@ -1,0 +1,38 @@
+# deporte;equipo;loginSocio;posicion;camiseta
+Futbol;Seneca FC;ana;Portero;1
+Futbol;Seneca FC;luis;Defensa;2
+Futbol;Seneca FC;camila;Defensa;3
+Futbol;Seneca FC;jorge;Defensa;4
+Futbol;Seneca FC;maria;Mediocampista;5
+Futbol;Seneca FC;andres;Mediocampista;6
+Futbol;Seneca FC;juliana;Mediocampista;8
+Futbol;Seneca FC;felipe;Delantero;9
+Futbol;Seneca FC;daniela;Delantero;10
+Futbol;Seneca FC;santiago;Delantero;11
+Futbol;Seneca United;paula;Portero;1
+Futbol;Seneca United;sebastian;Defensa;2
+Futbol;Seneca United;natalia;Defensa;3
+Futbol;Seneca United;ricardo;Defensa;4
+Futbol;Seneca United;carolina;Mediocampista;5
+Futbol;Seneca United;miguel;Mediocampista;6
+Futbol;Seneca United;isabel;Delantero;9
+Futbol;Seneca United;nicolas;Delantero;10
+Futbol;Seneca Sub15;tomas;Delantero;7
+Baloncesto;Tigres;ana;Base;4
+Baloncesto;Tigres;luis;Escolta;5
+Baloncesto;Tigres;maria;Alero;6
+Baloncesto;Tigres;felipe;Ala-pivot;7
+Baloncesto;Tigres;paula;Pivot;8
+Baloncesto;Tigres;sebastian;Base;9
+Baloncesto;Tigres;natalia;Alero;10
+Baloncesto;Panteras;camila;Base;4
+Baloncesto;Panteras;jorge;Escolta;5
+Baloncesto;Panteras;andres;Alero;6
+Baloncesto;Panteras;juliana;Ala-pivot;7
+Baloncesto;Panteras;daniela;Pivot;8
+Voleibol;Aguilas;carolina;Armador;1
+Voleibol;Aguilas;miguel;Opuesto;2
+Voleibol;Aguilas;isabel;Central;3
+Voleibol;Aguilas;nicolas;Punta;4
+Voleibol;Aguilas;ricardo;Libero;5
+Voleibol;Aguilas;santiago;Punta;6

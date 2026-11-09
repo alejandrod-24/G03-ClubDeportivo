@@ -1,0 +1,1 @@
+# id;entrenador;instalacion;inicio;duracionMinutos;cancelada;convocados

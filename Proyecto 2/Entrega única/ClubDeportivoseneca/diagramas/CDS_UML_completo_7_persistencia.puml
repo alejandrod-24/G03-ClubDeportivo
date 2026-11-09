@@ -1,0 +1,141 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: persistencia
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: persistencia
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package persistencia {
+  class ArchivoTexto {
+    + {static} SEPARADOR : String = ";"
+    + {static} SEPARADOR_LISTA : String = ","
+    + {static} procesar(archivo : File, accion : Consumer<String[]>) : void
+    + {static} escribir(archivo : File, encabezado : String, lineas : List<String>) : void
+    + {static} unir(campos : Object...) : String
+    + {static} unirLista(valores : List<String>) : String
+    + {static} separarLista(campo : String) : List<String>
+    + {static} exigirCampos(campos : String[], cantidad : int) : void
+    + {static} leerBooleano(campo : String) : boolean
+  }
+  class Persistencia {
+    + {static} CARPETA_POR_DEFECTO : String = "datos"
+    - carpeta : File {readOnly}
+    - personas : PersistenciaPersonas {readOnly}
+    - deportes : PersistenciaDeportes {readOnly}
+    - instalaciones : PersistenciaInstalaciones {readOnly}
+    - partidos : PersistenciaPartidos {readOnly}
+    - comercio : PersistenciaComercio {readOnly}
+    - administracion : PersistenciaAdministracion {readOnly}
+    + Persistencia(carpeta : String)
+    + Persistencia()
+    + existenDatos() : boolean
+    + cargar() : Club
+    + salvar(club : Club) : void
+    + cargarOCrear() : Club
+  }
+  class PersistenciaAdministracion {
+    + {static} TURNOS : String = "turnos.txt"
+    + {static} SOLICITUDES : String = "solicitudes_turno.txt"
+    + {static} SUGERENCIAS : String = "sugerencias.txt"
+    + {static} PAGOS : String = "pagos_mensualidad.txt"
+    + cargar(club : Club, carpeta : File) : void
+    + salvar(club : Club, carpeta : File) : void
+  }
+  class PersistenciaComercio {
+    + {static} PRODUCTOS : String = "productos.txt"
+    + {static} EXISTENCIAS : String = "existencias.txt"
+    + {static} VENTAS : String = "ventas.txt"
+    + {static} DETALLES : String = "detalles_venta.txt"
+    + {static} BEBIDAS : String = "bebidas_calientes.txt"
+    + cargar(club : Club, carpeta : File) : void
+    + salvar(club : Club, carpeta : File) : void
+  }
+  class PersistenciaDeportes {
+    + {static} DEPORTES : String = "deportes.txt"
+    + {static} EQUIPOS : String = "equipos.txt"
+    + {static} INSCRIPCIONES : String = "inscripciones_equipo.txt"
+    + {static} ACADEMIAS : String = "inscripciones_academia.txt"
+    + {static} RANKING : String = "ranking.txt"
+    + cargar(club : Club, carpeta : File) : void
+    + salvar(club : Club, carpeta : File) : void
+  }
+  class PersistenciaInstalaciones {
+    + {static} INSTALACIONES : String = "instalaciones.txt"
+    + {static} RESERVAS : String = "reservas.txt"
+    + {static} SESIONES : String = "sesiones.txt"
+    + {static} REGISTROS : String = "registros_entrenamiento.txt"
+    + {static} INGRESOS : String = "ingresos.txt"
+    + cargar(club : Club, carpeta : File) : void
+    + salvar(club : Club, carpeta : File) : void
+  }
+  class PersistenciaPartidos {
+    + {static} INTERNOS : String = "partidos_internos.txt"
+    + {static} COMPETENCIAS : String = "competencias.txt"
+    + {static} INSCRIPCIONES : String = "inscripciones_competencia.txt"
+    + {static} PARTIDOS_COMPETENCIA : String = "partidos_competencia.txt"
+    + {static} PRACTICAS : String = "partidos_practica.txt"
+    + {static} ESTADISTICAS : String = "estadisticas.txt"
+    + cargar(club : Club, carpeta : File) : void
+    - {static} crearEstadistica(c : String[]) : EstadisticaPartido
+    - {static} socios(club : Club, campo : String) : List<Socio>
+    - {static} logins(socios : List<Socio>) : String
+    + salvar(club : Club, carpeta : File) : void
+  }
+  class PersistenciaPersonas {
+    + {static} ARCHIVO : String = "personas.txt"
+    + cargar(club : Club, carpeta : File) : void
+    + salvar(club : Club, carpeta : File) : void
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+class Club <<externa>>
+class DatosIniciales <<externa>>
+
+Persistencia *-- PersistenciaPersonas
+Persistencia *-- PersistenciaDeportes
+Persistencia *-- PersistenciaInstalaciones
+Persistencia *-- PersistenciaPartidos
+Persistencia *-- PersistenciaComercio
+Persistencia *-- PersistenciaAdministracion
+Persistencia ..> Club
+Persistencia ..> DatosIniciales : si no hay datos
+PersistenciaPersonas ..> ArchivoTexto
+PersistenciaDeportes ..> ArchivoTexto
+PersistenciaInstalaciones ..> ArchivoTexto
+PersistenciaPartidos ..> ArchivoTexto
+PersistenciaComercio ..> ArchivoTexto
+PersistenciaAdministracion ..> ArchivoTexto
+
+note bottom of Persistencia
+  Orden de carga (cada grupo apunta a los anteriores):
+  1. Personas  2. Deportes  3. Instalaciones
+  4. Partidos y competencia  5. Comercio  6. Administración
+end note
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml

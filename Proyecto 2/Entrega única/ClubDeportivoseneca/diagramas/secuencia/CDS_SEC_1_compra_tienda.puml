@@ -1,0 +1,20 @@
+@startuml
+title Compra en la tienda
+hide footbox
+
+actor Socio
+participant Club
+participant VentaTienda
+participant ArticuloDeportivo
+participant CuentaFidelidad
+
+Socio -> Club : comprarEnTienda(articulos, codigo, puntos)
+Club -> VentaTienda : new VentaTienda(descuento)
+loop cada articulo
+  Club -> VentaTienda : agregarDetalle(articulo, cantidad)
+  Club -> ArticuloDeportivo : hayExistencia(cantidad)
+end
+Club -> ArticuloDeportivo : descontar(cantidad)
+Club -> CuentaFidelidad : registrarVenta(venta)
+Club --> Socio : venta (total con IVA)
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+title Reserva e ingreso a una instalacion
+hide footbox
+
+actor Socio
+participant Club
+participant Academia
+participant InstalacionIndividual
+participant Reserva
+participant RegistroIngreso
+
+Socio -> Club : reservarInstalacion(deporte, codigo, bloque, jugadores, modalidad)
+Club -> Academia : estaInscrito(socio)
+Club -> InstalacionIndividual : getCapacidad()
+Club -> Reserva : new Reserva()
+Club --> Socio : reserva
+
+Socio -> Club : registrarIngreso(codigo)
+Club -> InstalacionIndividual : restringeBebidaCaliente()
+Club -> RegistroIngreso : new RegistroIngreso()
+Club --> Socio : ingreso
+@enduml
