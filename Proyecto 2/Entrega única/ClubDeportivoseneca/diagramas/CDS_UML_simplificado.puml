@@ -1,0 +1,245 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de clases de alto nivel
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diagrama de clases (alto nivel)
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+hide members
+left to right direction
+
+package global {
+  class Club
+  class DatosIniciales
+  class Horario
+  class Reloj
+}
+package consola {
+  class MenuConsola
+}
+package persistencia {
+  class ArchivoTexto
+  class Persistencia
+  class PersistenciaAdministracion
+  class PersistenciaComercio
+  class PersistenciaDeportes
+  class PersistenciaInstalaciones
+  class PersistenciaPartidos
+  class PersistenciaPersonas
+}
+package personas {
+  class Administrador
+  abstract class Empleado
+  class Entrenador
+  class Fisioterapeuta
+  abstract class Persona
+  enum Rol
+  class Socio
+}
+package deportes {
+  class Academia
+  enum Categoria
+  abstract class Deporte
+  class DeporteConjunto
+  class DeporteIndividual
+  class Equipo
+  class InscripcionAcademia
+  class InscripcionEquipo
+  enum Nivel
+  class Ranking
+  class RegistroRanking
+}
+package competencias {
+  class Competencia
+  enum Fase
+  class FilaPosicion
+  enum FormatoCompetencia
+  class InscripcionCompetencia
+}
+package partidos {
+  class EstadisticaBaloncesto
+  class EstadisticaFutbol
+  class EstadisticaPadel
+  abstract class EstadisticaPartido
+  abstract class EstadisticaRaqueta
+  class EstadisticaTenis
+  class EstadisticaTenisDeMesa
+  class EstadisticaVoleibol
+  enum EstadoPartido
+  abstract class Partido
+  class PartidoCompetencia
+  class PartidoInterno
+  class PartidoPractica
+}
+package instalaciones {
+  interface Actividad
+  abstract class Instalacion
+  class InstalacionConjunto
+  class InstalacionIndividual
+  enum Modalidad
+  class RegistroIngreso
+  class Reserva
+}
+package entrenamiento {
+  enum Asistencia
+  class RegistroEntrenamiento
+  class SesionEntrenamiento
+}
+package comercio {
+  class ArticuloDeportivo
+  class CuentaFidelidad
+  class DetalleVenta
+  abstract class Producto
+  class ProductoCafeteria
+  abstract class Venta
+  class VentaCafeteria
+  class VentaTienda
+}
+package administracion {
+  enum EstadoSolicitud
+  class PagoMensualidad
+  class SolicitudCambioTurno
+  class SugerenciaProducto
+  enum TipoPeriodo
+  class Turno
+}
+
+
+Club ..> Horario
+Club ..> TipoPeriodo : reportes
+DatosIniciales ..> Club : crea
+MenuConsola "0..1" --> "1" Club
+MenuConsola ..> Persistencia
+Persona <|-- Socio
+Persona <|-- Empleado
+Persona <|-- Administrador
+Empleado <|-- Entrenador
+Empleado <|-- Fisioterapeuta
+Persona ..> Rol
+Socio ..> Categoria : calcula
+Deporte <|-- DeporteConjunto
+Deporte <|-- DeporteIndividual
+DeporteConjunto "1" <--> "0..*" Equipo
+Equipo --> Categoria
+Equipo "1" *-- "0..*" InscripcionEquipo
+InscripcionEquipo "0..*" --> "1" Socio
+DeporteIndividual "1" *-- "1" Academia
+DeporteIndividual --> "1..*" Modalidad : modalidades
+Academia "1" *-- "0..*" InscripcionAcademia
+InscripcionAcademia "0..*" --> "1" Socio
+InscripcionAcademia --> Nivel
+InscripcionAcademia "1" *-- "1" Ranking
+Ranking "1" *-- "0..*" RegistroRanking
+Competencia "0..*" --> "1" DeporteConjunto
+Competencia --> Categoria
+Competencia --> FormatoCompetencia
+Competencia "1" *-- "0..*" InscripcionCompetencia
+InscripcionCompetencia "0..*" --> "1" Equipo
+InscripcionCompetencia "0..*" --> "0..*" Socio : nomina
+Competencia ..> FilaPosicion : tabla de posiciones
+Competencia "1" *-- "0..*" PartidoCompetencia
+Partido <|-- PartidoInterno
+Partido <|-- PartidoCompetencia
+Partido <|-- PartidoPractica
+Partido --> EstadoPartido
+Partido "1" *-- "0..*" EstadisticaPartido : por login
+EstadisticaPartido <|-- EstadisticaFutbol
+EstadisticaPartido <|-- EstadisticaBaloncesto
+EstadisticaPartido <|-- EstadisticaVoleibol
+EstadisticaPartido <|-- EstadisticaRaqueta
+EstadisticaRaqueta <|-- EstadisticaTenis
+EstadisticaRaqueta <|-- EstadisticaTenisDeMesa
+EstadisticaTenis <|-- EstadisticaPadel
+DeporteConjunto "1" <--> "0..*" PartidoInterno
+PartidoInterno "0..*" --> "1" Equipo : local
+PartidoInterno "0..*" --> "1" Equipo : visitante
+PartidoInterno "0..*" --> "0..*" Socio : alineaciones
+PartidoCompetencia "0..*" --> "1" Equipo
+PartidoCompetencia --> Fase
+PartidoCompetencia "0..*" --> "0..*" Socio : alineacion
+DeporteIndividual "1" <--> "0..*" PartidoPractica
+PartidoPractica "0..*" --> "1" InstalacionIndividual
+PartidoPractica "0..*" --> "1" Socio : programadoPor
+PartidoPractica "0..*" --> "2 o 4" Persona : participantes
+Instalacion <|-- InstalacionIndividual
+Instalacion <|-- InstalacionConjunto
+Instalacion "0..*" --> "1" Deporte
+Actividad <|.. Reserva
+Actividad <|.. PartidoPractica
+Actividad <|.. SesionEntrenamiento
+Actividad ..> Instalacion
+Reserva "0..*" --> "1" Socio
+Reserva "0..*" --> "1" InstalacionIndividual
+Reserva --> Modalidad
+RegistroIngreso "0..*" --> "1" Socio
+RegistroIngreso "0..*" --> "1" Instalacion
+SesionEntrenamiento "0..*" --> "1" Entrenador
+SesionEntrenamiento "0..*" --> "1" Instalacion
+SesionEntrenamiento "1" *-- "0..*" RegistroEntrenamiento
+RegistroEntrenamiento "0..*" --> "1" Socio
+RegistroEntrenamiento --> Asistencia
+Producto <|-- ArticuloDeportivo
+Producto <|-- ProductoCafeteria
+Venta <|-- VentaTienda
+Venta <|-- VentaCafeteria
+Venta "1" *-- "1..*" DetalleVenta
+DetalleVenta "0..*" --> "1" Producto
+Venta "0..*" --> "1" Persona : comprador
+CuentaFidelidad "0..1" --> "1" Persona : titular
+CuentaFidelidad "1" --> "0..*" Venta
+Turno "0..*" --> "1" Empleado
+SolicitudCambioTurno "0..*" --> "1" Turno
+SolicitudCambioTurno --> EstadoSolicitud
+SugerenciaProducto "0..*" --> "1" Empleado
+SugerenciaProducto --> EstadoSolicitud
+PagoMensualidad "0..*" --> "1" Socio
+Persistencia *-- PersistenciaPersonas
+Persistencia *-- PersistenciaDeportes
+Persistencia *-- PersistenciaInstalaciones
+Persistencia *-- PersistenciaPartidos
+Persistencia *-- PersistenciaComercio
+Persistencia *-- PersistenciaAdministracion
+Persistencia ..> Club
+Persistencia ..> DatosIniciales : si no hay datos
+PersistenciaPersonas ..> ArchivoTexto
+PersistenciaDeportes ..> ArchivoTexto
+PersistenciaInstalaciones ..> ArchivoTexto
+PersistenciaPartidos ..> ArchivoTexto
+PersistenciaComercio ..> ArchivoTexto
+PersistenciaAdministracion ..> ArchivoTexto
+
+note as NRaiz
+  **Club** (paquete global) es la raíz del dominio y guarda
+  las colecciones raíz: personas, deportes, competencias,
+  instalaciones, reservas, sesiones, ingresos, productos,
+  cuentas de fidelidad, turnos, solicitudes, sugerencias y pagos.
+  Sus flechas a cada colección están en el diagrama de Club.
+end note
+NRaiz .. Club
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Las 14 flechas de Club a sus colecciones están en el diagrama de Club.
+endlegend
+
+@enduml

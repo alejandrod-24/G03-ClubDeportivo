@@ -1,0 +1,20 @@
+@startuml
+title Aprobar cambio de turno
+hide footbox
+
+actor Administrador
+participant Club
+participant SolicitudCambioTurno
+participant Turno
+
+Administrador -> Club : aprobarSolicitudCambioTurno(id)
+Club -> SolicitudCambioTurno : aprobar(turnos)
+SolicitudCambioTurno -> Turno : buscarFranjaSinCobertura(turnosConCambio, dia)
+Turno --> SolicitudCambioTurno : franja o null
+alt hay franja sin cobertura
+  SolicitudCambioTurno --> Club : error
+else
+  SolicitudCambioTurno -> Turno : cambiarHorario(inicio, fin)
+end
+Club --> Administrador : resultado
+@enduml

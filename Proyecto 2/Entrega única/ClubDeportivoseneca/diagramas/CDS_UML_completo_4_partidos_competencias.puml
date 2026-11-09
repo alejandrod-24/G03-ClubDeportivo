@@ -1,0 +1,371 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: partidos y competencias
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: partidos y competencias
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package competencias {
+  class Competencia {
+    + {static} CERROS : String = "Torneo de los Cerros"
+    + {static} ASCUN : String = "ASCUN"
+    - nombre : String {readOnly}
+    - entidadOrganizadora : String {readOnly}
+    - temporada : int {readOnly}
+    - deporte : DeporteConjunto {readOnly}
+    - categoria : Categoria {readOnly}
+    - formato : FormatoCompetencia {readOnly}
+    - instituciones : List<String> {readOnly}
+    - nominaMinima : int {readOnly}
+    - amarillasParaSuspension : int {readOnly}
+    - finalizada : boolean
+    - inscripciones : List<InscripcionCompetencia> {readOnly}
+    - partidos : List<PartidoCompetencia> {readOnly}
+    + Competencia(nombre : String, entidadOrganizadora : String, temporada : int, deporte : DeporteConjunto, categoria : Categoria, formato : FormatoCompetencia, instituciones : List<String>, nominaMinima : int, amarillasParaSuspension : int)
+    + {static} torneoDeLosCerros(nombre : String, temporada : int, deporte : DeporteConjunto, categoria : Categoria, instituciones : List<String>) : Competencia
+    + {static} ascun(nombre : String, temporada : int, deporte : DeporteConjunto, categoria : Categoria, instituciones : List<String>) : Competencia
+    - {static} validarTexto(texto : String, campo : String) : void
+    + getNombre() : String
+    + getEntidadOrganizadora() : String
+    + getTemporada() : int
+    + getDeporte() : DeporteConjunto
+    + getCategoria() : Categoria
+    + getFormato() : FormatoCompetencia
+    + getInstituciones() : List<String>
+    + getNominaMinima() : int
+    + getAmarillasParaSuspension() : int
+    + estaEnCurso() : boolean
+    + getInscripciones() : List<InscripcionCompetencia>
+    + getPartidos() : List<PartidoCompetencia>
+    + finalizar() : void
+    + buscarInscripcion(equipo : Equipo) : InscripcionCompetencia
+    + tieneEnNomina(socio : Socio) : boolean
+    + inscribirEquipo(equipo : Equipo) : InscripcionCompetencia
+    + definirNomina(equipo : Equipo, nomina : List<Socio>) : void
+    + agregarInscripcionGuardada(equipo : Equipo, nomina : List<Socio>) : void
+    + programarPartido(id : String, equipo : Equipo, rival : String, escenario : String, fecha : LocalDate, fase : Fase) : PartidoCompetencia
+    + agregarPartidoGuardado(partido : PartidoCompetencia) : void
+    - esInstitucionParticipante(institucion : String) : boolean
+    + getPartidosDe(equipo : Equipo) : List<PartidoCompetencia>
+    + tienePartidosProgramados(equipo : Equipo) : boolean
+    + estaSuspendido(socio : Socio, equipo : Equipo, fechaPartido : LocalDate) : boolean
+    - {static} amarillasDe(partido : Partido, socio : Socio) : int
+    + getTablaPosiciones() : List<FilaPosicion>
+    - buscarNombreInstitucion(institucion : String) : String
+    + getCuadroEliminacion() : List<PartidoCompetencia>
+    - acumular(usarValoracion : boolean) : Map<String, Integer>
+    - {static} maximo(totales : Map<String, Integer>) : String
+    + getGoleador() : String
+    + getJugadorDestacado() : String
+    + getAmonestaciones() : List<String>
+    + generarResumen() : String
+  }
+  enum Fase {
+    LIGA
+    GRUPOS
+    OCTAVOS
+    CUARTOS
+    SEMIFINAL
+    FINAL
+    + esEliminatoria() : boolean
+    + esValidaPara(formato : FormatoCompetencia) : boolean
+  }
+  class FilaPosicion {
+    - nombre : String {readOnly}
+    - jugados : int
+    - ganados : int
+    - empatados : int
+    - perdidos : int
+    - aFavor : int
+    - enContra : int
+    + FilaPosicion(nombre : String)
+    ~ registrar(favor : int, contra : int) : void
+    + getNombre() : String
+    + getPuntos() : int
+    + getDiferencia() : int
+  }
+  enum FormatoCompetencia {
+    LIGA
+    GRUPOS_Y_ELIMINACION
+  }
+  class InscripcionCompetencia {
+    - competencia : Competencia {readOnly}
+    - equipo : Equipo {readOnly}
+    - nomina : List<Socio>
+    ~ InscripcionCompetencia(competencia : Competencia, equipo : Equipo)
+    + getCompetencia() : Competencia
+    + getEquipo() : Equipo
+    + getNomina() : List<Socio>
+    + estaEnNomina(socio : Socio) : boolean
+    ~ setNomina(nomina : List<Socio>) : void
+  }
+}
+package partidos {
+  class EstadisticaBaloncesto {
+    + {static} DEPORTE : String = "Baloncesto"
+    - puntos : int {readOnly}
+    - rebotes : int {readOnly}
+    + EstadisticaBaloncesto(loginJugador : String, puntos : int, rebotes : int)
+    + getPuntos() : int
+    + getRebotes() : int
+    + getNombreDeporte() : String
+    + getAnotaciones() : int
+    + getValoracion() : int
+    + getValores() : List<String>
+  }
+  class EstadisticaFutbol {
+    + {static} DEPORTE : String = "Futbol"
+    - goles : int {readOnly}
+    - asistencias : int {readOnly}
+    - tarjetasAmarillas : int {readOnly}
+    - tarjetaRoja : boolean {readOnly}
+    + EstadisticaFutbol(loginJugador : String, goles : int, asistencias : int, tarjetasAmarillas : int, tarjetaRoja : boolean)
+    + getGoles() : int
+    + getAsistencias() : int
+    + getTarjetasAmarillas() : int
+    + tieneTarjetaRoja() : boolean
+    + getNombreDeporte() : String
+    + getAnotaciones() : int
+    + getValoracion() : int
+    + getValores() : List<String>
+  }
+  class EstadisticaPadel {
+    + {static} DEPORTE : String = "Padel"
+    + EstadisticaPadel(loginJugador : String, setsGanados : int, gamesGanados : int, aces : int, erroresNoForzados : int)
+    + getNombreDeporte() : String
+  }
+  abstract class EstadisticaPartido {
+    # loginJugador : String {readOnly}
+    # EstadisticaPartido(loginJugador : String)
+    + getLoginJugador() : String
+    + {abstract} getNombreDeporte() : String
+    + {abstract} getAnotaciones() : int
+    + {abstract} getValoracion() : int
+    + {abstract} getValores() : List<String>
+    + getTarjetasAmarillas() : int
+    + tieneTarjetaRoja() : boolean
+    + generaSuspension() : boolean
+    # {static} validarNoNegativo(valor : int, campo : String) : void
+  }
+  abstract class EstadisticaRaqueta {
+    # setsGanados : int {readOnly}
+    # EstadisticaRaqueta(loginJugador : String, setsGanados : int)
+    + getSetsGanados() : int
+    + getAnotaciones() : int
+  }
+  class EstadisticaTenis {
+    + {static} DEPORTE : String = "Tenis"
+    - gamesGanados : int {readOnly}
+    - aces : int {readOnly}
+    - erroresNoForzados : int {readOnly}
+    + EstadisticaTenis(loginJugador : String, setsGanados : int, gamesGanados : int, aces : int, erroresNoForzados : int)
+    + getGamesGanados() : int
+    + getAces() : int
+    + getErroresNoForzados() : int
+    + getNombreDeporte() : String
+    + getValoracion() : int
+    + getValores() : List<String>
+  }
+  class EstadisticaTenisDeMesa {
+    + {static} DEPORTE : String = "Tenis de mesa"
+    - puntosTotales : int {readOnly}
+    + EstadisticaTenisDeMesa(loginJugador : String, setsGanados : int, puntosTotales : int)
+    + getPuntosTotales() : int
+    + getNombreDeporte() : String
+    + getValoracion() : int
+    + getValores() : List<String>
+  }
+  class EstadisticaVoleibol {
+    + {static} DEPORTE : String = "Voleibol"
+    - aces : int {readOnly}
+    - bloqueos : int {readOnly}
+    + EstadisticaVoleibol(loginJugador : String, aces : int, bloqueos : int)
+    + getAces() : int
+    + getBloqueos() : int
+    + getNombreDeporte() : String
+    + getAnotaciones() : int
+    + getValoracion() : int
+    + getValores() : List<String>
+  }
+  enum EstadoPartido {
+    PROGRAMADO
+    JUGADO
+    NO_JUGADO
+    CANCELADO
+  }
+  abstract class Partido {
+    # id : String {readOnly}
+    # fecha : LocalDate {readOnly}
+    # estado : EstadoPartido
+    # marcadorLocal : int
+    # marcadorVisitante : int
+    # estadisticas : Map<String, EstadisticaPartido> {readOnly}
+    # Partido(id : String, fecha : LocalDate)
+    + getId() : String
+    + getFecha() : LocalDate
+    + getEstado() : EstadoPartido
+    + getMarcadorLocal() : int
+    + getMarcadorVisitante() : int
+    + {abstract} getDeporte() : Deporte
+    + {abstract} getAlineados() : List<Socio>
+    + {abstract} getDescripcion() : String
+    + getEstadisticas() : Collection<EstadisticaPartido>
+    + getEstadistica(login : String) : EstadisticaPartido
+    + estaAlineado(login : String) : boolean
+    + registrarEstadistica(estadistica : EstadisticaPartido) : void
+    # validarEstadistica(estadistica : EstadisticaPartido) : void
+    + declararNoJugado() : void
+    # validarPuedeRegistrarse() : void
+    # {static} validarMarcador(local : int, visitante : int, permiteEmpate : boolean) : void
+    # {static} validarSinRepetidos(jugadores : List<Socio>) : void
+    + restaurarEstado(estado : EstadoPartido, marcadorLocal : int, marcadorVisitante : int) : void
+    + restaurarEstadistica(estadistica : EstadisticaPartido) : void
+    + {static} ultimoJugadoAntesDe(partidos : List<? extends Partido>, fecha : LocalDate) : Partido
+    + {static} fueExpulsadoEn(partido : Partido, socio : Socio) : boolean
+    + getResultado() : String
+  }
+  class PartidoCompetencia {
+    - competencia : Competencia {readOnly}
+    - equipo : Equipo {readOnly}
+    - institucionRival : String {readOnly}
+    - escenario : String {readOnly}
+    - fase : Fase {readOnly}
+    - alineacion : List<Socio>
+    + PartidoCompetencia(id : String, competencia : Competencia, equipo : Equipo, institucionRival : String, escenario : String, fecha : LocalDate, fase : Fase)
+    + getDeporte() : DeporteConjunto
+    + getCompetencia() : Competencia
+    + getEquipo() : Equipo
+    + getInstitucionRival() : String
+    + getEscenario() : String
+    + getFase() : Fase
+    + getAlineados() : List<Socio>
+    + getDescripcion() : String
+    + getGanador() : String
+    + registrarResultado(alineacion : List<Socio>, marcadorClub : int, marcadorRival : int, estadisticasJugadores : List<EstadisticaPartido>) : void
+    + restaurarAlineacion(alineacion : List<Socio>) : void
+  }
+  class PartidoInterno {
+    - deporte : DeporteConjunto {readOnly}
+    - local : Equipo {readOnly}
+    - visitante : Equipo {readOnly}
+    - alineacionLocal : List<Socio>
+    - alineacionVisitante : List<Socio>
+    + PartidoInterno(id : String, deporte : DeporteConjunto, local : Equipo, visitante : Equipo, fecha : LocalDate)
+    + getDeporte() : DeporteConjunto
+    + getLocal() : Equipo
+    + getVisitante() : Equipo
+    + getAlineacionLocal() : List<Socio>
+    + getAlineacionVisitante() : List<Socio>
+    + getAlineados() : List<Socio>
+    + getDescripcion() : String
+    + registrarResultado(alineacionLocal : List<Socio>, alineacionVisitante : List<Socio>, marcadorLocal : int, marcadorVisitante : int) : void
+    - validarAlineacion(alineacion : List<Socio>, equipo : Equipo) : void
+    + estaSuspendido(socio : Socio, equipo : Equipo) : boolean
+    + restaurarAlineaciones(alineacionLocal : List<Socio>, alineacionVisitante : List<Socio>) : void
+  }
+  class PartidoPractica {
+    - deporte : DeporteIndividual {readOnly}
+    - instalacion : InstalacionIndividual {readOnly}
+    - inicio : LocalDateTime {readOnly}
+    - programadoPor : Socio {readOnly}
+    - participantes : List<Persona> {readOnly}
+    + PartidoPractica(id : String, deporte : DeporteIndividual, instalacion : InstalacionIndividual, inicio : LocalDateTime, programadoPor : Socio, participantes : List<Persona>)
+    + getDeporte() : DeporteIndividual
+    + getInstalacion() : InstalacionIndividual
+    + getInicio() : LocalDateTime
+    + getFin() : LocalDateTime
+    + getProgramadoPor() : Socio
+    + getParticipantes() : List<Persona>
+    + getLadoA() : List<Persona>
+    + getLadoB() : List<Persona>
+    + getModalidad() : Modalidad
+    + getAlineados() : List<Socio>
+    + estaAlineado(login : String) : boolean
+    + getDescripcion() : String
+    - {static} nombres(personas : List<Persona>) : String
+    + estaEnLadoA(persona : Persona) : boolean
+    + estaVigente() : boolean
+    + involucra(persona : Persona) : boolean
+    + cancelar(quien : Socio) : void
+    + cancelarPorSistema() : void
+    + esFuturoProgramado() : boolean
+    + registrarResultado(setsA : int, setsB : int, estadisticasJugadores : List<EstadisticaPartido>) : void
+    # validarEstadistica(estadistica : EstadisticaPartido) : void
+    + gano(persona : Persona) : boolean
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+interface Actividad <<externa>>
+enum Categoria <<externa>>
+class DeporteConjunto <<externa>>
+class Equipo <<externa>>
+class InstalacionIndividual <<externa>>
+abstract class Persona <<externa>>
+class Socio <<externa>>
+
+Competencia "0..*" --> "1" DeporteConjunto
+Competencia --> Categoria
+Competencia --> FormatoCompetencia
+Competencia "1" *-- "0..*" InscripcionCompetencia
+InscripcionCompetencia "0..*" --> "1" Equipo
+InscripcionCompetencia "0..*" --> "0..*" Socio : nomina
+Competencia ..> FilaPosicion : tabla de posiciones
+Competencia "1" *-- "0..*" PartidoCompetencia
+Partido <|-- PartidoInterno
+Partido <|-- PartidoCompetencia
+Partido <|-- PartidoPractica
+Partido --> EstadoPartido
+Partido "1" *-- "0..*" EstadisticaPartido : por login
+EstadisticaPartido <|-- EstadisticaFutbol
+EstadisticaPartido <|-- EstadisticaBaloncesto
+EstadisticaPartido <|-- EstadisticaVoleibol
+EstadisticaPartido <|-- EstadisticaRaqueta
+EstadisticaRaqueta <|-- EstadisticaTenis
+EstadisticaRaqueta <|-- EstadisticaTenisDeMesa
+EstadisticaTenis <|-- EstadisticaPadel
+PartidoInterno "0..*" --> "1" Equipo : local
+PartidoInterno "0..*" --> "1" Equipo : visitante
+PartidoInterno "0..*" --> "0..*" Socio : alineaciones
+PartidoCompetencia "0..*" --> "1" Equipo
+PartidoCompetencia --> Fase
+PartidoCompetencia "0..*" --> "0..*" Socio : alineacion
+PartidoPractica "0..*" --> "1" InstalacionIndividual
+PartidoPractica "0..*" --> "1" Socio : programadoPor
+PartidoPractica "0..*" --> "2 o 4" Persona : participantes
+Actividad <|.. PartidoPractica
+
+note bottom of EstadisticaFutbol
+  La suspensión no se guarda: se calcula
+  (roja o 2 amarillas en el partido anterior;
+  en competencia, también por amarillas
+  acumuladas). La calculan PartidoInterno
+  y Competencia.
+end note
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml

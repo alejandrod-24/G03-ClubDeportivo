@@ -1,0 +1,24 @@
+@startuml
+title Compra en la cafeteria
+hide footbox
+
+actor Socio
+participant Club
+participant VentaCafeteria
+participant InstalacionIndividual
+
+Socio -> Club : consultarAlergenos(productos)
+Club --> Socio : alergenos
+Socio -> Club : comprarEnCafeteria(productos, puntos, propina, acepta)
+Club -> VentaCafeteria : new VentaCafeteria()
+Club -> VentaCafeteria : agregarDetalle(producto, cantidad)
+opt tiene bebida caliente
+  Club -> InstalacionIndividual : restringeBebidaCaliente()
+  InstalacionIndividual --> Club : true / false
+end
+alt socio dentro de padel o tenis de mesa techada
+  Club --> Socio : error
+else
+  Club --> Socio : venta
+end
+@enduml

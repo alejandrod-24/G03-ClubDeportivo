@@ -1,0 +1,11 @@
+# INDIVIDUAL;codigo;nombre;deporte;capacidad;activa;techada | CONJUNTO;codigo;nombre;deporte;capacidad;activa
+INDIVIDUAL;TEN-1;Cancha de tenis 1;Tenis;4;true;false
+INDIVIDUAL;TEN-2;Cancha de tenis 2;Tenis;4;true;false
+INDIVIDUAL;TEN-3;Cancha de tenis 3;Tenis;2;true;false
+INDIVIDUAL;PAD-1;Cancha de padel techada;Padel;4;true;true
+INDIVIDUAL;PAD-2;Cancha de padel exterior;Padel;4;true;false
+INDIVIDUAL;MESA-1;Mesa de tenis de mesa techada;Tenis de mesa;4;true;true
+INDIVIDUAL;MESA-2;Mesa de tenis de mesa exterior;Tenis de mesa;2;true;false
+CONJUNTO;FUT-1;Cancha de futbol;Futbol;22;true
+CONJUNTO;BAL-1;Coliseo de baloncesto;Baloncesto;12;true
+CONJUNTO;VOL-1;Cancha de voleibol;Voleibol;12;true

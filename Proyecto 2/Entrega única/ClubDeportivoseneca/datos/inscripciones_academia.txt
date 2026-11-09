@@ -1,0 +1,13 @@
+# deporte;loginSocio;nivel;activa
+Tenis;diego;AVANZADO;true
+Tenis;valentina;INTERMEDIO;true
+Tenis;luis;INTERMEDIO;true
+Tenis;ana;PRINCIPIANTE;true
+Tenis;camila;PRINCIPIANTE;true
+Padel;mateo;INTERMEDIO;true
+Padel;maria;INTERMEDIO;true
+Padel;jorge;AVANZADO;true
+Padel;juliana;AVANZADO;true
+Tenis de mesa;sofia;PRINCIPIANTE;true
+Tenis de mesa;martin;PRINCIPIANTE;true
+Tenis de mesa;tomas;INTERMEDIO;true

@@ -1,0 +1,293 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: Club (raíz del dominio)
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: Club (raíz del dominio)
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package global {
+  class Club {
+    - personas : Map<String, Persona> {readOnly}
+    - deportes : List<Deporte> {readOnly}
+    - competencias : List<Competencia> {readOnly}
+    - productos : List<Producto> {readOnly}
+    - cuentas : Map<String, CuentaFidelidad> {readOnly}
+    - turnos : List<Turno> {readOnly}
+    - solicitudes : List<SolicitudCambioTurno> {readOnly}
+    - sugerencias : List<SugerenciaProducto> {readOnly}
+    - pagos : List<PagoMensualidad> {readOnly}
+    - instalaciones : List<Instalacion> {readOnly}
+    - reservas : List<Reserva> {readOnly}
+    - sesiones : List<SesionEntrenamiento> {readOnly}
+    - ingresos : List<RegistroIngreso> {readOnly}
+    - usuarioActual : Persona
+    + Club()
+    .. Registro y busqueda (sin control de acceso, los usa la carga) ..
+    + registrarPersona(persona : Persona) : void
+    + buscarPersona(login : String) : Persona
+    + buscarSocio(login : String) : Socio
+    + buscarEmpleado(login : String) : Empleado
+    + getPersonas() : Collection<Persona>
+    + agregarDeporte(deporte : Deporte) : void
+    + buscarDeporte(nombre : String) : Deporte
+    + buscarDeporteConjunto(nombre : String) : DeporteConjunto
+    + getDeportes() : List<Deporte>
+    + getDeportesConjunto() : List<DeporteConjunto>
+    + buscarEquipo(deporte : String, nombre : String) : Equipo
+    + agregarCompetencia(competencia : Competencia) : void
+    + buscarCompetencia(nombre : String, temporada : int) : Competencia
+    + getCompetencias() : List<Competencia>
+    + getTodosLosPartidos() : List<Partido>
+    + buscarPartido(id : String) : Partido
+    - generarIdPartido() : String
+    + agregarProducto(producto : Producto) : void
+    + getProductos() : List<Producto>
+    + buscarProducto(nombre : String) : Producto
+    + buscarArticulo(nombre : String) : ArticuloDeportivo
+    + buscarProductoCafeteria(nombre : String) : ProductoCafeteria
+    - existeProducto(nombre : String) : boolean
+    + getCuentaFidelidad(persona : Persona) : CuentaFidelidad
+    + getVentas() : List<Venta>
+    + buscarVenta(id : String) : Venta
+    + agregarTurno(turno : Turno) : void
+    + getTurnos() : List<Turno>
+    + buscarTurno(id : String) : Turno
+    + agregarSolicitud(solicitud : SolicitudCambioTurno) : void
+    + getSolicitudes() : List<SolicitudCambioTurno>
+    + buscarSolicitud(id : String) : SolicitudCambioTurno
+    + agregarSugerencia(sugerencia : SugerenciaProducto) : void
+    + getSugerencias() : List<SugerenciaProducto>
+    + buscarSugerencia(id : String) : SugerenciaProducto
+    + agregarPago(pago : PagoMensualidad) : void
+    + getPagos() : List<PagoMensualidad>
+    - {static} consecutivo(id : String) : int
+    .. Sesion y control de acceso (RF-GEN-01, 02, 03) ..
+    + iniciarSesion(login : String, password : String) : Persona
+    + cerrarSesion() : void
+    + getUsuarioActual() : Persona
+    + cambiarPassword(passwordActual : String, nuevaPassword : String) : void
+    - exigirSesion() : Persona
+    - <T extends Persona> exigirRol(rol : Class<T>) : T
+    .. Consultas generales (RF-GEN-05, 07) - cualquier usuario autenticado ..
+    + consultarEquipos(deporte : String, categoria : Categoria) : List<Equipo>
+    + consultarCalendarioEquipo(deporte : String, nombreEquipo : String) : List<Partido>
+    + consultarCompetencia(nombre : String, temporada : int) : Competencia
+    .. Administrador (RF-ADM-01 a 05, 07) ..
+    + crearSocio(nombre : String, login : String, password : String, fechaNacimiento : LocalDate) : Socio
+    + crearEntrenador(nombre : String, login : String, password : String) : Entrenador
+    + crearFisioterapeuta(nombre : String, login : String, password : String) : Fisioterapeuta
+    - generarCodigoDescuento(login : String) : String
+    + restablecerPassword(login : String, nuevaPassword : String) : void
+    + darDeBajaPersona(login : String) : void
+    + crearEquipo(deporte : String, nombre : String, categoria : Categoria, cupoMaximo : int) : Equipo
+    + darDeBajaEquipo(deporte : String, nombre : String) : void
+    + crearCompetenciaCerros(nombre : String, temporada : int, deporte : String, categoria : Categoria, instituciones : List<String>) : Competencia
+    + crearCompetenciaAscun(nombre : String, temporada : int, deporte : String, categoria : Categoria, instituciones : List<String>) : Competencia
+    + finalizarCompetencia(nombre : String, temporada : int) : void
+    .. Socio (RF-SOC-01 a 03) ..
+    + consultarPerfil() : String
+    - describirSuspension(socio : Socio, equipo : Equipo) : String
+    + inscribirseEnEquipo(deporte : String, nombreEquipo : String, posicion : String, numeroCamiseta : int) : void
+    + retirarseDeEquipo(deporte : String, nombreEquipo : String) : void
+    .. Entrenador (RF-ENT-01 a 08) ..
+    + programarPartidoInterno(deporte : String, local : String, visitante : String, fecha : LocalDate) : PartidoInterno
+    + registrarResultadoInterno(idPartido : String, alineacionLocal : List<String>, alineacionVisitante : List<String>, marcadorLocal : int, marcadorVisitante : int) : void
+    + registrarEstadistica(idPartido : String, estadistica : EstadisticaPartido) : void
+    + declararNoJugado(idPartido : String) : void
+    + consultarSanciones(deporte : String, nombreEquipo : String) : List<String>
+    + inscribirEquipoEnCompetencia(competencia : String, temporada : int, deporte : String, nombreEquipo : String) : void
+    + definirNomina(competencia : String, temporada : int, nombreEquipo : String, logins : List<String>) : void
+    + programarPartidoCompetencia(competencia : String, temporada : int, nombreEquipo : String, rival : String, escenario : String, fecha : LocalDate, fase : Fase) : PartidoCompetencia
+    + registrarPartidoCompetencia(idPartido : String, alineacion : List<String>, marcadorClub : int, marcadorRival : int, estadisticas : List<EstadisticaPartido>) : void
+    - buscarPartidoInterno(id : String) : PartidoInterno
+    - buscarSocios(logins : List<String>) : List<Socio>
+    + consultarCodigoDescuento() : String
+    .. Etapa 3: busquedas de instalaciones, academias, reservas, practicas y sesiones ..
+    + getDeportesIndividuales() : List<DeporteIndividual>
+    + buscarDeporteIndividual(nombre : String) : DeporteIndividual
+    + agregarInstalacion(instalacion : Instalacion) : void
+    + getInstalaciones() : List<Instalacion>
+    + buscarInstalacion(codigo : String) : Instalacion
+    + buscarInstalacionIndividual(codigo : String) : InstalacionIndividual
+    + agregarReserva(reserva : Reserva) : void
+    + getReservas() : List<Reserva>
+    + buscarReserva(id : String) : Reserva
+    + agregarSesion(sesion : SesionEntrenamiento) : void
+    + getSesiones() : List<SesionEntrenamiento>
+    + buscarSesion(id : String) : SesionEntrenamiento
+    + agregarIngreso(ingreso : RegistroIngreso) : void
+    + getIngresos() : List<RegistroIngreso>
+    + ingresoActualDe(socio : Socio) : RegistroIngreso
+    + buscarPartidoPractica(id : String) : PartidoPractica
+    + getActividades() : List<Actividad>
+    - buscarOcupacion(instalacion : Instalacion, inicio : LocalDateTime, fin : LocalDateTime, excluida : Actividad) : Actividad
+    - buscarCompromiso(persona : Persona, inicio : LocalDateTime, fin : LocalDateTime, excluida : Actividad) : Actividad
+    - instalacionesEnUso(deporte : DeporteIndividual, inicio : LocalDateTime, fin : LocalDateTime, excluida : Actividad) : int
+    - validarInstalacionDisponible(instalacion : Instalacion, inicio : LocalDateTime, fin : LocalDateTime, excluida : Actividad) : void
+    - validarSinCompromiso(persona : Persona, inicio : LocalDateTime, fin : LocalDateTime, excluida : Actividad) : void
+    - {static} describir(a : Actividad) : String
+    - {static} validarFuturo(inicio : LocalDateTime) : void
+    - estaInscritoEnDeporte(socio : Socio, deporte : Deporte) : boolean
+    - cancelarActividadesFuturas(socio : Socio, deporte : DeporteIndividual) : void
+    .. Administrador: instalaciones (RF-ADM-06) ..
+    + crearInstalacionIndividual(codigo : String, nombre : String, deporte : String, capacidad : int, techada : boolean) : InstalacionIndividual
+    + crearInstalacionConjunto(codigo : String, nombre : String, deporte : String, capacidad : int) : InstalacionConjunto
+    + editarInstalacion(codigo : String, nuevoNombre : String, nuevaCapacidad : int) : void
+    + desactivarInstalacion(codigo : String) : void
+    .. Socio: academias (RF-SOC-04, 05) ..
+    + inscribirseEnAcademia(deporte : String, nivel : Nivel, eloInicial : int) : InscripcionAcademia
+    + retirarseDeAcademia(deporte : String) : void
+    .. Socio: instalaciones y reservas (RF-SOC-06 a 09) ..
+    + consultarDisponibilidad(deporte : String, bloque : LocalDateTime) : List<String>
+    + reservarInstalacion(deporte : String, codigoInstalacion : String, bloque : LocalDateTime, numeroJugadores : int, modalidad : Modalidad) : Reserva
+    + cancelarReserva(id : String) : void
+    + registrarIngreso(codigoInstalacion : String) : RegistroIngreso
+    + registrarSalida() : void
+    .. Socio: partidos de practica (RF-SOC-08, 10, 11) ..
+    + programarPartidoPractica(deporte : String, codigoInstalacion : String, bloque : LocalDateTime, otrosParticipantes : List<String>) : PartidoPractica
+    - {static} validarNivelesCompatibles(inscritos : List<InscripcionAcademia>) : void
+    + cancelarPartidoPractica(id : String) : void
+    + consultarPartidosYRanking() : String
+    .. Socio: desempeno en entrenamiento y calendario (RF-SOC-12, 13) ..
+    + consultarDesempeno() : String
+    + consultarCalendario() : List<String>
+    - {static} describirParaCalendario(a : Actividad) : String
+    - juegaPartidoDeEquipo(socio : Socio, partido : Partido) : boolean
+    .. Entrenador: academias y partidos de practica (RF-ENT-09, 10) ..
+    + asignarNivel(deporte : String, login : String, nuevoNivel : Nivel) : void
+    + registrarResultadoPractica(idPartido : String, setsA : int, setsB : int, estadisticas : List<EstadisticaPartido>) : void
+    .. Entrenador: sesiones de entrenamiento (RF-ENT-11 a 14, 16) ..
+    + planificarSesion(codigoInstalacion : String, inicio : LocalDateTime, duracionMinutos : int, convocados : List<String>) : SesionEntrenamiento
+    + modificarSesion(id : String, codigoInstalacion : String, inicio : LocalDateTime, duracionMinutos : int, convocados : List<String>) : void
+    + cancelarSesion(id : String) : void
+    + registrarAsistencia(idSesion : String, login : String, asistencia : Asistencia) : void
+    + registrarEvaluacion(idSesion : String, login : String, nota : int, comentario : String) : void
+    - buscarSesionPropia(entrenador : Entrenador, id : String) : SesionEntrenamiento
+    - validarSesion(entrenador : Entrenador, instalacion : Instalacion, inicio : LocalDateTime, duracionMinutos : int, convocados : List<Socio>, excluida : SesionEntrenamiento) : void
+    + consultarAgenda() : List<String>
+    .. Analiticas de entrenamiento (RF-ENT-15) ..
+    - contarAsistencia(socio : Socio, desde : LocalDate, hasta : LocalDate) : int[]
+    - {static} describirAsistencia(c : int[]) : String
+    + consultarAnaliticasJugador(login : String, desde : LocalDate, hasta : LocalDate) : String
+    + consultarAnaliticasGrupo(deporte : String, nombreEquipo : String, desde : LocalDate, hasta : LocalDate) : String
+    .. Administrador: historiales y reportes de la etapa 3 (RF-ADM-15, 17, 19, 21) ..
+    + historialReservas(deporte : String, desde : LocalDate, hasta : LocalDate, codigoInstalacion : String, login : String) : List<Reserva>
+    + historialSesiones(deporte : String, desde : LocalDate, hasta : LocalDate, codigoInstalacion : String, login : String) : List<String>
+    + reporteAsistencias(desde : LocalDate, hasta : LocalDate) : String
+    + reporteRankings(desde : LocalDate, hasta : LocalDate) : String
+    .. Comercio (RF-GEN-06, RF-SOC-14 a 17, RF-EMP-04 y mensualidades) ..
+    + consultarCatalogoTienda() : List<ArticuloDeportivo>
+    + consultarCatalogoCafeteria() : List<ProductoCafeteria>
+    + consultarProducto(nombre : String) : Producto
+    - exigirComprador() : Persona
+    + comprarEnTienda(articulos : Map<String, Integer>, codigoDescuento : String, puntos : long) : VentaTienda
+    + consultarAlergenos(productosCafeteria : Map<String, Integer>) : List<String>
+    + comprarEnCafeteria(productosCafeteria : Map<String, Integer>, puntos : long, porcentajePropina : int, aceptaAlergenos : boolean) : VentaCafeteria
+    - generarIdVenta() : String
+    - {static} exigirDisponible(producto : Producto) : void
+    - validarCompra(comprador : Persona, venta : Venta) : void
+    - buscarEmpleadoPorCodigo(codigo : String) : Empleado
+    + consultarPuntos() : String
+    + declararFinBebidaCaliente() : void
+    + pagarMensualidad() : PagoMensualidad
+    - tieneMensualidadPaga(socio : Socio, mes : YearMonth) : boolean
+    .. Empleado: turnos y sugerencias (RF-EMP-01 a 03, 06 y 07) ..
+    + consultarTurnos() : List<Turno>
+    - turnosDe(empleado : Empleado) : List<Turno>
+    + solicitarCambioTurno(idTurno : String, nuevaHoraInicio : LocalTime, nuevaHoraFin : LocalTime) : SolicitudCambioTurno
+    + consultarSolicitudes() : List<SolicitudCambioTurno>
+    + sugerirProducto(nombre : String, categoria : String, precioSugerido : long, alergenos : List<String>) : SugerenciaProducto
+    + consultarSugerencias() : List<SugerenciaProducto>
+    .. Administrador: catalogo, inventario, sugerencias y turnos (RF-ADM-08 a 14) ..
+    + crearArticulo(nombre : String, categoria : String, precio : long) : ArticuloDeportivo
+    + crearProductoCafeteria(nombre : String, precio : long, bebidaCaliente : boolean, alergenos : List<String>) : ProductoCafeteria
+    + cambiarPrecioProducto(nombre : String, nuevoPrecio : long) : void
+    + desactivarProducto(nombre : String) : void
+    + reabastecerTienda(articulo : String, cantidad : int) : void
+    + moverArticulo(articulo : String, origen : String, destino : String, cantidad : int) : void
+    + consultarInventario() : List<String>
+    + aprobarSugerencia(id : String) : Producto
+    + rechazarSugerencia(id : String) : void
+    + asignarTurno(login : String, dia : DayOfWeek, horaInicio : LocalTime, horaFin : LocalTime) : Turno
+    - validarSinCruceDeTurnos(empleado : Empleado, dia : DayOfWeek, inicio : LocalTime, fin : LocalTime, excluido : Turno) : void
+    + aprobarSolicitudCambioTurno(id : String) : void
+    + rechazarSolicitudCambioTurno(id : String) : void
+    .. Administrador: historiales y reportes (RF-ADM-16 a 21) ..
+    + historialPartidos(deporte : String, desde : LocalDate, hasta : LocalDate, login : String) : List<Partido>
+    - validarFiltros(deporte : String, desde : LocalDate, hasta : LocalDate, login : String) : void
+    + reporteVentas(desde : LocalDate, hasta : LocalDate, tipo : TipoPeriodo) : String
+    - {static} resumirRubros(ventas : List<Venta>, pagosMensualidad : List<PagoMensualidad>) : String
+    + reporteResultados(desde : LocalDate, hasta : LocalDate) : String
+    - {static} sumarResultado(balance : Map<String, int[]>, equipo : Equipo, aFavor : int, enContra : int) : void
+    - {static} validarPeriodo(desde : LocalDate, hasta : LocalDate) : void
+    - {static} enPeriodo(fecha : LocalDate, desde : LocalDate, hasta : LocalDate) : boolean
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+class Competencia <<externa>>
+class CuentaFidelidad <<externa>>
+abstract class Deporte <<externa>>
+class Horario <<externa>>
+abstract class Instalacion <<externa>>
+class PagoMensualidad <<externa>>
+abstract class Persona <<externa>>
+abstract class Producto <<externa>>
+class RegistroIngreso <<externa>>
+class Reserva <<externa>>
+class SesionEntrenamiento <<externa>>
+class SolicitudCambioTurno <<externa>>
+class SugerenciaProducto <<externa>>
+enum TipoPeriodo <<externa>>
+class Turno <<externa>>
+
+Club "1" --> "0..*" Persona : personas
+Club --> "0..1" Persona : usuarioActual
+Club "1" --> "0..*" Deporte
+Club "1" --> "0..*" Competencia
+Club "1" --> "0..*" Instalacion
+Club "1" --> "0..*" Reserva
+Club "1" --> "0..*" SesionEntrenamiento
+Club "1" --> "0..*" RegistroIngreso
+Club "1" --> "0..*" Producto
+Club "1" --> "0..*" CuentaFidelidad
+Club "1" --> "0..*" Turno
+Club "1" --> "0..*" SolicitudCambioTurno
+Club "1" --> "0..*" SugerenciaProducto
+Club "1" --> "0..*" PagoMensualidad
+Club ..> Horario
+Club ..> TipoPeriodo : reportes
+
+note as NClub
+  **Club** es la raíz del dominio: un solo club, no static.
+  Un solo Administrador (registrarPersona rechaza un segundo).
+  Maneja la sesión (usuarioActual) y exige el rol antes de cada acción.
+  No conoce archivos: la persistencia va aparte.
+end note
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml

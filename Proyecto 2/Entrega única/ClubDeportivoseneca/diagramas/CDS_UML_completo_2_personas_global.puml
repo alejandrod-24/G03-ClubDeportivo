@@ -1,0 +1,189 @@
+@startuml
+' ============================================================
+' Club Deportivo Séneca (CDS) - Diagrama de diseño completo: personas, global y consola
+' Entrega 2 - Proyecto 1. Generado a partir del código de main (commit e0df831).
+' Los programas de prueba (paquete pruebas) y los toString() no se dibujan.
+' ============================================================
+!pragma layout smetana
+title Club Deportivo Séneca - Diseño completo: personas, global y consola
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor<<externa>> #F4F4F4
+  BorderColor<<externa>> #AAAAAA
+  FontColor<<externa>> #888888
+  StereotypeFontColor<<externa>> #AAAAAA
+}
+hide <<externa>> members
+set separator none
+
+package global {
+  class DatosIniciales {
+    + {static} TEMPORADA : int = 2026
+    + {static} LIGA_CERROS : String = "Liga de los Cerros"
+    + {static} ASCUN_BALONCESTO : String = "ASCUN Baloncesto"
+    + {static} crearClub() : Club
+    - {static} nacidoHace(anios : int) : LocalDate
+    - {static} inscribir(club : Club, equipo : Equipo, jugadores : String[][]) : void
+    - {static} academia(club : Club, deporte : DeporteIndividual, login : String, nivel : Nivel, elo : int) : void
+    - {static} agregarArticulo(club : Club, nombre : String, categoria : String, precio : long, enTienda : int, enBodega : int) : void
+    - {static} agregarTurno(club : Club, login : String, dia : DayOfWeek, inicio : LocalTime, fin : LocalTime) : void
+  }
+  class Horario {
+    + {static} APERTURA : LocalTime
+    + {static} CIERRE : LocalTime
+    + {static} MINUTOS_BLOQUE : int = 60
+    + {static} validarIntervalo(inicio : LocalDateTime, fin : LocalDateTime) : void
+    + {static} validarBloque(inicio : LocalDateTime) : void
+    + {static} finDeBloque(inicio : LocalDateTime) : LocalDateTime
+    + {static} seCruzan(inicioA : LocalDateTime, finA : LocalDateTime, inicioB : LocalDateTime, finB : LocalDateTime) : boolean
+  }
+  class Reloj {
+    + {static} HORA_AL_FIJAR_FECHA : LocalTime
+    - {static} momentoFijo : LocalDateTime
+    + {static} ahora() : LocalDateTime
+    + {static} hoy() : LocalDate
+    + {static} fijar(fecha : LocalDate) : void
+    + {static} fijar(momento : LocalDateTime) : void
+    + {static} avanzarDias(dias : int) : void
+    + {static} avanzarHoras(horas : int) : void
+    + {static} restablecer() : void
+  }
+}
+package consola {
+  class MenuConsola {
+    - {static} entrada : Scanner
+    - {static} persistencia : Persistencia
+    - {static} club : Club
+    + {static} main(args : String[]) : void
+    - {static} menuInicio() : boolean
+    - {static} menuSocio() : void
+    - {static} menuFisioterapeuta() : void
+    - {static} menuEntrenador() : void
+    - {static} opcionesEmpleado() : void
+    - {static} opcionEmpleado(opcion : int) : boolean
+    - {static} menuAdministrador() : void
+    - {static} opcionesComunes() : void
+    - {static} opcionComun(opcion : int) : void
+    - {static} comprarEnTienda(esSocio : boolean) : void
+    - {static} comprarEnCafeteria() : void
+    - {static} leerProductos() : Map<String, Integer>
+    - {static} ejecutar(accion : Runnable) : void
+    - {static} guardar() : void
+    - {static} leerOpcion() : int
+    - {static} leerTexto(mensaje : String) : String
+    - {static} leerTextoOpcional(mensaje : String) : String
+    - {static} leerEntero(mensaje : String) : int
+    - {static} leerEntero(mensaje : String, porDefecto : int) : int
+    - {static} leerSiNo(mensaje : String) : boolean
+    - {static} leerLista(mensaje : String) : List<String>
+    - {static} <E extends Enum<E>> leerEnum(mensaje : String, tipo : Class<E>) : E
+    - {static} leerFecha(mensaje : String) : LocalDate
+    - {static} leerHora(mensaje : String) : LocalTime
+    - {static} leerFechaHora() : LocalDateTime
+    - {static} filtro(mensaje : String) : String
+    - {static} fechaFiltro(mensaje : String) : LocalDate
+    - {static} leerEstadistica(deporte : String, login : String) : EstadisticaPartido
+    - {static} cambiarReloj() : void
+    - {static} mostrarAhora() : String
+    - {static} titulo(texto : String) : void
+    - {static} seccion(texto : String) : void
+    - {static} mostrar(elementos : List<?>) : void
+  }
+}
+package personas {
+  class Administrador {
+    + Administrador(nombre : String, login : String, password : String)
+    + getRol() : Rol
+  }
+  abstract class Empleado {
+    # codigoDescuento : String {readOnly}
+    # Empleado(nombre : String, login : String, password : String, codigoDescuento : String)
+    + getCodigoDescuento() : String
+    - validarCodigoDescuento(codigoDescuento : String) : void
+  }
+  class Entrenador {
+    + Entrenador(nombre : String, login : String, password : String, codigoDescuento : String)
+    + getRol() : Rol
+  }
+  class Fisioterapeuta {
+    + Fisioterapeuta(nombre : String, login : String, password : String, codigoDescuento : String)
+    + getRol() : Rol
+  }
+  abstract class Persona {
+    # nombre : String
+    # login : String {readOnly}
+    - password : String
+    - activo : boolean
+    # Persona(nombre : String, login : String, password : String)
+    + getNombre() : String
+    + getLogin() : String
+    + {abstract} getRol() : Rol
+    + estaActivo() : boolean
+    + darDeBaja() : void
+    + esPasswordCorrecta(input : String) : boolean
+    + cambiarPassword(passwordActual : String, newPass : String) : void
+    + restablecerPassword(newPass : String) : void
+    + getPasswordParaGuardar() : String
+    - validarPassword(password : String) : void
+    # {static} validarTexto(texto : String, campo : String) : void
+  }
+  enum Rol {
+    SOCIO
+    ENTRENADOR
+    FISIOTERAPEUTA
+    ADMINISTRADOR
+  }
+  class Socio {
+    - fechaNacimiento : LocalDate {readOnly}
+    - fechaBebidaCaliente : LocalDate
+    + Socio(nombre : String, login : String, password : String, fechaNacimiento : LocalDate)
+    + getFechaNacimiento() : LocalDate
+    + getEdad() : int
+    + getCategoria() : Categoria
+    + getRol() : Rol
+    + tieneBebidaCaliente() : boolean
+    + getFechaBebidaCaliente() : LocalDate
+    + tomarBebidaCaliente() : void
+    + terminarBebidaCaliente() : void
+    + restaurarBebidaCaliente(fecha : LocalDate) : void
+    - validarFechaNacimiento(fechaNacimiento : LocalDate) : void
+  }
+}
+
+' Clases de otras áreas (solo para mostrar a qué se conectan)
+enum Categoria <<externa>>
+class Club <<externa>>
+class Persistencia <<externa>>
+
+DatosIniciales ..> Club : crea
+MenuConsola "0..1" --> "1" Club
+MenuConsola ..> Persistencia
+Persona <|-- Socio
+Persona <|-- Empleado
+Persona <|-- Administrador
+Empleado <|-- Entrenador
+Empleado <|-- Fisioterapeuta
+Persona ..> Rol
+Socio ..> Categoria : calcula
+
+note bottom of Reloj
+  Fecha y hora "de hoy" del sistema.
+  Las pruebas la fijan para que los
+  resultados no cambien.
+end note
+
+legend right
+  **Cómo leer este diagrama**
+  ~-- asociación (~--> navegable en un sentido)
+  *~-- composición
+  <|~-- generalización (herencia)
+  <|.. realización (implementa una interface)
+  ..> dependencia (usa)
+  Gris <<externa>>: clase de otra área; sus miembros están en su propio diagrama.
+endlegend
+
+@enduml

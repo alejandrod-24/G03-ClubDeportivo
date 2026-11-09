@@ -1,0 +1,18 @@
+@startuml
+title Resultado de partido de practica
+hide footbox
+
+actor Entrenador
+participant Club
+participant PartidoPractica
+participant Academia
+participant Ranking
+
+Entrenador -> Club : registrarResultadoPractica(id, setsA, setsB, estadisticas)
+Club -> PartidoPractica : registrarResultado(setsA, setsB, estadisticas)
+Club -> Academia : actualizarRanking(partido)
+loop cada jugador
+  Academia -> Ranking : registrar(fecha, puntaje, motivo)
+end
+Club --> Entrenador : resultado registrado
+@enduml

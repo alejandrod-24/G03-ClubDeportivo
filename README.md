@@ -1,6 +1,6 @@
 # Club Deportivo Séneca — DPOO (grupo 03)
 
-Proyecto 1: Club Deportivo Séneca.
+Proyectos 1 y 2: Club Deportivo Séneca.
 
 ## Integrantes
 
@@ -16,4 +16,5 @@ Proyecto 1: Club Deportivo Séneca.
 |---|---|
 | `Proyecto 1/Entrega 1/` | Análisis: documento de análisis, historias de usuario y diagrama de clases del dominio. |
 | `Proyecto 1/Entrega 2/` | Diseño e implementación: proyecto Eclipse, diagramas de clases y de secuencia, y documento de diseño. |
+| `Proyecto 2/Entrega única/` | Evolución del Proyecto 1: torneos internos, pruebas JUnit, consolas por tipo de usuario y documento de diseño actualizado. |
 

@@ -1,0 +1,10 @@
+# articulo;ubicacion;cantidad
+Balon de futbol;Tienda;10
+Balon de futbol;Bodega;20
+Raqueta de tenis;Tienda;4
+Raqueta de tenis;Bodega;6
+Tubo de pelotas;Tienda;2
+Tubo de pelotas;Bodega;30
+Uniforme Seneca;Tienda;8
+Malla de voleibol;Tienda;0
+Malla de voleibol;Bodega;3

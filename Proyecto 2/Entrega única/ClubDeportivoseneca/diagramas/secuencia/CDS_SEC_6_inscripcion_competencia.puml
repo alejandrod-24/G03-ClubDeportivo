@@ -1,0 +1,19 @@
+@startuml
+title Inscribir equipo en competencia
+hide footbox
+
+actor Entrenador
+participant Club
+participant Competencia
+participant InscripcionCompetencia
+
+Entrenador -> Club : inscribirEquipoEnCompetencia(competencia, temporada, deporte, equipo)
+Club -> Competencia : inscribirEquipo(equipo)
+Competencia -> InscripcionCompetencia : new InscripcionCompetencia()
+Club --> Entrenador : equipo inscrito
+
+Entrenador -> Club : definirNomina(competencia, temporada, equipo, logins)
+Club -> Competencia : definirNomina(equipo, socios)
+Competencia -> InscripcionCompetencia : setNomina(socios)
+Club --> Entrenador : nomina guardada
+@enduml
